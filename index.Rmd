@@ -26,8 +26,8 @@ linux shell via ssh on the HPC ...
 The structure of this guide is heavily influenced by our own mistakes and we hope to make it somewhat easier for future HPC user.
 In general, the our setup should also work with any other HPC and the code snippets in the end are also usable for our scheduling systems than LSF (which is used be the GWDG).
 
-Huge thanks to the GWDG HPC team that put quite some effort into installing R trifles and explaining some HPC basics to us :)
-Another big thanks to [https://twitter.com/henrikbengtsson?lang=en](Henrik Bengtsson), [https://twitter.com/_ms03?lang=en](Michael Schubert) and [https://github.com/mllg](Michel Lang) for developing such nice tools to enable even ecologists to use cluster infrastrace ;-)
+Huge thanks to the GWDG HPC team that put quite some effort into installing R trifles and explaining some HPC basics to us.
+Another big thanks to [https://twitter.com/henrikbengtsson?lang=en](Henrik Bengtsson), [https://twitter.com/_ms03?lang=en](Michael Schubert) and [https://github.com/mllg](Michel Lang) for developing such nice tools (future, clustermq, batchtools) to enable even ecologists to use cluster infrastrace ;-)
 
 There are some prelimanry steps you have to take, before you can actually use the HPC these include:
 
@@ -240,6 +240,8 @@ plan(list(
 
 ### 3. Going down the future topology
 
+We can now reach the **first level** of the HPC, the frontend, with:
+
 ```{r eval = FALSE}
 # Before we start, despite that we have declared our future plan above,
 # we are still working on our local machine if we do not use futures:
@@ -254,7 +256,7 @@ hpc_sysinfo
 
 We now executed the function `Sys.info` on the frontend of the HPC, where we land after logging in to gwdu101.gwdg.de.
 
-The second level, the cluster nodes, can be reached if we nest a future in another future.
+The **second level**, the cluster nodes, can be reached if we nest a future in another future.
 Here, we are using **furrr**, which lets you use the purrr::map family with futures:
 
 ```{r eval = FALSE}
@@ -263,6 +265,96 @@ hpc_sysinfo_on_nodes  %<-%  future_map(seq_len(10), ~ Sys.info())
 hpc_sysinfo_on_nodes
 ```
 
-Now, we used `%<-%`
+Now, we used `%<-%` as the first level of nesting and `future_map` as the second level of future nesting.
+With respect to the HPC, this means that we logged in to the frontend, and distributed jobs over 10 cluster nodes.
+Up to this level, we control how to distribute jobs to the HPC.
+This means we always need at least this two nested future levels to submit jobs.
+Note that the second level also always controls the total number of jobs you submit.
+This becomes very important if we later think about sequential job submission and exclusive jobs with future.
+
+The **third level**, the cores on each cluster node you address in the second level, the function you specify in the second level future.
+For example, in our second level in the future plan, `bsub`, we said that we want to have 12 processes on each cluster node (more details in the next section).
+The third level was a multisession, which in combination means that we block 12 cores on each cluster node we address.
+Hence, our simulation could run on 12 cores and use the memory every core comes with.
+
+```{r eval = FALSE}
+# do something on core level of each cluster node
+hpc_sysinfo_on_node_cores  %<-%  future_map(seq_len(10), function(x){
+  future_map(seq_len(12), ~ Sys.info())
+})
+```
+
+Here, we distributed our jobs over 10 nodes that had at least 12 available cores.
+In total, we therefore executed 10 x 12 times `Sys.info()`.
+`hpc_sysinfo_on_node_cores` is therefore a two dimensional list, with 10 elements where each of these has again 12 elements.
+The 12 elements in each outer dimension of the list should be same, but differ between the unique outer elements overall.
+
+### 4. future.batchtools lsf template
+
+The future plans are crucial, as they specify how to distribute jobs.
+Before submitting jobs to the HPC you therefore have to make sure, that the architecture of your plan and how your code is parallelised match together.
+Otherwise, you misuse the scheduling software and drain ressources from other users.
+
+The following code snippet explains how control the access specific queues, set the walltime and how to design a sequential plan:
+
+```{r eval = FALSE}
+# login node -> cluster nodes -> core/ multiple cores
+
+# there shouldn't be to much change for the login level of your plan
+# you specify the address of the hpc and your user name
+login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'msciain')
+
+# the bsub, or cluster node, level becomes the first stage
+# where you could make adjustment to control you experiment.
+# This tweak fills out the space between the curly brackets
+# in the lsf.tmpl file we created on the HPC.
+# (scroll to the right to read an explanation of every line)
+bsub <- tweak(batchtools_lsf, template = 'lsf.tmpl',            # here we tell future.batchtools where to look for the template file we created in section
+              resources = list(job.name = 'params_nlmr',        # name of your jobs in the LSF scheduling system
+                               log.file = 'params_nlmr.log',    # future creates a hidden folder (next section), where it stores logfiles with this name for every job
+                               queue = 'mpi-short',             # set the queue you plan to use
+                               walltime = '00:30',              # set a walltime for your hobs
+                               processes = 12))                 # block n cores on each node
+
+plan(list(
+  login,
+  bsub,
+  multisession # we specifically need multisession now to address the 12 cores we blocked on the bsub level
+))
+```
+
+This setup makes a lot of sense if you have specific needs for your jobs.
+This could either be that some of them depend of each other, you need a specific chip infrastructure or you have memory needs that are only satisfied if you block whole cluster nodes and run there exclusive.
+
+However, we found another way to submit jobs quite useful.
+This would be the case if you have a very high number of jobs, they do not depend on each other and each of them does not need more memory than you are allowed to use per core you use.
+In this case, it makes sense to submit a high number of very small jobs, let's say you have a dataframe with 500 rows and each column there is an argument for a simulation function.
+You could wait for example for 5 free cluster nodes and run there 100 jobs in parallel, however the time you would have to wait for that can be quite long.
+Instead you can tweak your bsub level like this:
+
+
+```{r eval = FALSE}
+# (scroll to the right to read an explanation of every line)
+bsub <- tweak(batchtools_lsf, template = 'lsf.tmpl',            # here we tell future.batchtools where to look for the template file we created in section
+              resources = list(job.name = 'params_nlmr',        # name of your jobs in the LSF scheduling system
+                               log.file = 'params_nlmr.log',    # future creates a hidden folder (next section), where it stores logfiles with this name for every job
+                               queue = 'mpi-short',             # set the queue you plan to use
+                               walltime = '00:30',              # set a walltime for your hobs
+                               processes = 1))                  # block 1 cores on each node
+
+plan(list(
+  login,
+  bsub,
+  sequential # we need sequential here, so that every job we submit only runs on a single core
+))
+```
+
+If we submit jobs now, the fill every every available slot on every node with free slots.
+This means that sometimes we run several jobs on the same cluster node but they are also distributed over several cluster nodes.
+This has the advantage that there are always free cores somewhere on the HPC and hence, the pending time of jobs is short.
+
+### 5. .future folder
+
+### Small example
 
 ## The clustermq way
