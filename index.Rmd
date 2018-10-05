@@ -107,14 +107,9 @@ and copy and paste the following in it:
 ```{bash eval = FALSE}
 ## export LSF_SERVERDIR=/opt/lsf/10.1/linux2.6-glibc2.3-x86_64/etc
 ## export LSF_ENVDIR=/opt/lsf/conf
-
-module load gcc/6.3.0
-module load R
-module load R_GEO
-module load zeromq/4.2.3
 ```
 
-This basically serves the same purpose as our `.bashrc`, but leaving one of the two out breaks our setup.
+This ensures that after we login to the HPC, we find the commands such as `bsub` and `bjobs`.
 
 ### 4. Check linux shell
 
@@ -127,7 +122,55 @@ If so, using R should be no problem now and
 
 ## GWDG HPC infrastructure
 
+The HPC infrastructure is mostly accessible through queues.
+A full overview can be found [http://hpc.gwdg.de/systems.html](here).
+
+The most 
+
 ### bsub 
+
+If you would use the HPC from the command line and without all the R packages,
+you would most likely use the LSF command `bsub` to start and control your jobs.
+
+If you follow this guide, we will use R functions as replacement for `bsub`.
+However, to understand error messages and so on, it is important to remember that underneath, we still submit jobs via `bsub` only with R as proxy.
+
+### LSF commands
+
+The most important commands to look at what is happening on the HPC
+are probably:
+
+* `bjobs`
+  * Shows you your job list and if your jobs are pending or running.
+* `bkill`
+  * Lets you kill jobs, for example if you did something wrong 
+  * `bkill 0` kills every job in the current job list
+* `bhist`
+  * Most relevant as `bhist -a`, which shows you a history of your finished jobs. The runtime is interesting, as it gives you also a feeling for the walltime you can specify.
+
+### modules
+
+As described above, modules help you select software versions you need to run your code.
+The module workflow on the HPC is rather straightforward, you look at the full list of modules:
+
+```{bash eval = FALSE}
+module avail
+```
+
+... load the ones you need, for example:
+
+```{bash eval = FALSE}
+module load R
+```
+... you can also look at the ones you already have loaded. This list should at least contain the ones you specified in the `.bashrc`.
+```{bash eval = FALSE}
+module list
+```
+And you can also detach the modules:
+```{bash eval = FALSE}
+module purge R
+```
+... or disconnect and connect again via ssh, which also removes all modules not specified in the `.bashrc`.
 
 ### Sequential jobs or exclusive nodes?
 
@@ -180,7 +223,7 @@ The necessary steps to use future on the HPC include:
 Login to the HPC and create a file called `lsf.tmpl` in your home directory:
 
 ```{bash eval = FALSE}
-nano .profile
+nano lsf.tmpl
 ```
 
 Copy and paste the following in it:
@@ -362,4 +405,56 @@ If you succesfully collect the results on your local machine after finishing the
 
 Note: You should remove failed jobs there, if they are not of need anymore. After a while, this folder can use up all your disk quota on the hpc.
 
-## The clustermq way
+### 6. Small example
+
+A very basic demand one could probably have to the HPC:
+
+- I need 120 cores to simulate jobs
+- I need more than 10 GB of RAM
+- My simulation takes about 12 hours, give or take
+
+To run something like that, we would do:
+
+```{r eval = FALSE}
+# laod the packages
+library("future")
+library("future.batchtools")
+library("furrr")
+library("tidyverse")
+
+# login node -> cluster nodes -> core/ multiple cores
+login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'msciain')
+
+# We submit to the multipurpose queue with a maximum
+# walltime of 48 hours (we specify 15 so that we
+# we aren not pending that long).
+# We furthermore specify 24 processes, which
+# automatically means that we reserve nodes
+# exclusively (the maximum number of cores on
+# mpi nodes is 24, which means if we say 24
+# here we wait until a node is not used by anyone).
+bsub <- tweak(batchtools_lsf, template = 'lsf.tmpl',            
+              resources = list(job.name = 'params_nlmr',        
+                               log.file = 'params_nlmr.log',    
+                               queue = 'mpi',             
+                               walltime = '15:00',              
+                               processes = 24))                 
+
+plan(list(
+  login,
+  bsub,
+  multisession # Again: multisession to distribute over all the cores
+))
+
+# let's create an imagenary data frame to iterate over
+y %<-% furrr::future_map_dfr(1:5, function(x){
+  cores <- availableCores()
+  furrr::future_map_dfr(1:5, function(x){
+    tibble::tibble(x = x, 
+                   nodename = Sys.info()['nodename'],
+                   Sys.getpid = Sys.getpid(), 
+                   availableCores = cores)
+    })
+  })
+print(y)
+```
