@@ -125,8 +125,6 @@ If so, using R should be no problem now and
 The HPC infrastructure is mostly accessible through queues.
 A full overview can be found [http://hpc.gwdg.de/systems.html](here).
 
-The most 
-
 ### bsub 
 
 If you would use the HPC from the command line and without all the R packages,
@@ -171,8 +169,6 @@ And you can also detach the modules:
 module purge R
 ```
 ... or disconnect and connect again via ssh, which also removes all modules not specified in the `.bashrc`.
-
-### Sequential jobs or exclusive nodes?
 
 ## R Packages
 
@@ -447,14 +443,45 @@ plan(list(
 ))
 
 # let's create an imagenary data frame to iterate over
-y %<-% furrr::future_map_dfr(1:5, function(x){
-  cores <- availableCores()
-  furrr::future_map_dfr(1:5, function(x){
-    tibble::tibble(x = x, 
-                   nodename = Sys.info()['nodename'],
-                   Sys.getpid = Sys.getpid(), 
-                   availableCores = cores)
-    })
-  })
-print(y)
+mydata <- data.frame(x = rnorm(100), y = rnorm(100))
+advanced_data <- list(mydata, mydata, mydata, mydata, mydata)
+
+fancy_statistical_model <- future_map_dfr(advanced_data, function(x) {
+  future_map_dfr(seq_len(ncol(x)), function(y) {
+    single_row <- x[y, ]
+    tibble(single_row$x + single_row$y)
+  }, .id = "y")
+}, .id = "x")
 ```
+
+## The clustermq way
+
+## Tips and Tricks
+
+### Kill jobs/rouge R sessions
+
+If you did something wrong, you will most likely end up with R sessions that do not close by themselfes or are open and keep submitting jobs.
+A convienent way to kill these processes is to login to the HPC frontend and type (user_name_gwdg being your username):
+
+```{r eval = FALSE}
+htop -u user_name_gwdg
+```
+
+With `F9` you can then select the R processes that you want to kill.
+
+### Better connection to the HPC
+
+One inconvience is that the connection to HPC from your local R session can not be interrupted.
+If that happens, your jobs are lost (if you use **future**, there might be chance to collect every result in the `.future` folder).
+
+This also means that running your code from your laptop/desktop pc means that it has to be running until everything is finished.
+When simulations take several days, this can easily become a problem.
+
+A way we explored for such cases is to use the GWDG Cloud Server.
+If you install there an instance of the RStudio Server, you have a cloud based IDE that you can run from everywhere with access to the internet.
+By default, the RStudio Server unfortunately breaks the connection every now and then, so you have to tweak it a bit to be permanently accessible.
+
+xxx
+
+In case you use another RStudio Server, the only thing you would have to change from the things we explained here is to open a vpn connection to the `goenet`.
+

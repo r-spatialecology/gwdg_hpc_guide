@@ -120,6 +120,8 @@ code > span.ot { color: #007020; }
 <li><a href="#gwdg-hpc-infrastructure">GWDG HPC infrastructure</a></li>
 <li><a href="#r-packages">R Packages</a></li>
 <li><a href="#the-future-way">The future way</a></li>
+<li><a href="#the-clustermq-way">The clustermq way</a></li>
+<li><a href="#tips-and-tricks">Tips and Tricks</a></li>
 </ul>
 </div>
 
@@ -188,7 +190,6 @@ code > span.ot { color: #007020; }
 <div id="gwdg-hpc-infrastructure" class="section level2">
 <h2>GWDG HPC infrastructure</h2>
 <p>The HPC infrastructure is mostly accessible through queues. A full overview can be found <a href="here">http://hpc.gwdg.de/systems.html</a>.</p>
-<p>The most</p>
 <div id="bsub" class="section level3">
 <h3>bsub</h3>
 <p>If you would use the HPC from the command line and without all the R packages, you would most likely use the LSF command <code>bsub</code> to start and control your jobs.</p>
@@ -224,9 +225,6 @@ code > span.ot { color: #007020; }
 <p>And you can also detach the modules:</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="ex">module</span> purge R</a></code></pre></div>
 <p>… or disconnect and connect again via ssh, which also removes all modules not specified in the <code>.bashrc</code>.</p>
-</div>
-<div id="sequential-jobs-or-exclusive-nodes" class="section level3">
-<h3>Sequential jobs or exclusive nodes?</h3>
 </div>
 </div>
 <div id="r-packages" class="section level2">
@@ -415,16 +413,35 @@ code > span.ot { color: #007020; }
 <a class="sourceLine" id="cb25-29" data-line-number="29">))</a>
 <a class="sourceLine" id="cb25-30" data-line-number="30"></a>
 <a class="sourceLine" id="cb25-31" data-line-number="31"><span class="co"># let's create an imagenary data frame to iterate over</span></a>
-<a class="sourceLine" id="cb25-32" data-line-number="32">y <span class="op">%&lt;-%</span><span class="st"> </span>furrr<span class="op">::</span><span class="kw">future_map_dfr</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>, <span class="cf">function</span>(x){</a>
-<a class="sourceLine" id="cb25-33" data-line-number="33">  cores &lt;-<span class="st"> </span><span class="kw">availableCores</span>()</a>
-<a class="sourceLine" id="cb25-34" data-line-number="34">  furrr<span class="op">::</span><span class="kw">future_map_dfr</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">5</span>, <span class="cf">function</span>(x){</a>
-<a class="sourceLine" id="cb25-35" data-line-number="35">    tibble<span class="op">::</span><span class="kw">tibble</span>(<span class="dt">x =</span> x, </a>
-<a class="sourceLine" id="cb25-36" data-line-number="36">                   <span class="dt">nodename =</span> <span class="kw">Sys.info</span>()[<span class="st">'nodename'</span>],</a>
-<a class="sourceLine" id="cb25-37" data-line-number="37">                   <span class="dt">Sys.getpid =</span> <span class="kw">Sys.getpid</span>(), </a>
-<a class="sourceLine" id="cb25-38" data-line-number="38">                   <span class="dt">availableCores =</span> cores)</a>
-<a class="sourceLine" id="cb25-39" data-line-number="39">    })</a>
-<a class="sourceLine" id="cb25-40" data-line-number="40">  })</a>
-<a class="sourceLine" id="cb25-41" data-line-number="41"><span class="kw">print</span>(y)</a></code></pre></div>
+<a class="sourceLine" id="cb25-32" data-line-number="32">mydata &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">x =</span> <span class="kw">rnorm</span>(<span class="dv">100</span>), <span class="dt">y =</span> <span class="kw">rnorm</span>(<span class="dv">100</span>))</a>
+<a class="sourceLine" id="cb25-33" data-line-number="33">advanced_data &lt;-<span class="st"> </span><span class="kw">list</span>(mydata, mydata, mydata, mydata, mydata)</a>
+<a class="sourceLine" id="cb25-34" data-line-number="34"></a>
+<a class="sourceLine" id="cb25-35" data-line-number="35">fancy_statistical_model &lt;-<span class="st"> </span><span class="kw">future_map_dfr</span>(advanced_data, <span class="cf">function</span>(x) {</a>
+<a class="sourceLine" id="cb25-36" data-line-number="36">  <span class="kw">future_map_dfr</span>(<span class="kw">seq_len</span>(<span class="kw">ncol</span>(x)), <span class="cf">function</span>(y) {</a>
+<a class="sourceLine" id="cb25-37" data-line-number="37">    single_row &lt;-<span class="st"> </span>x[y, ]</a>
+<a class="sourceLine" id="cb25-38" data-line-number="38">    <span class="kw">tibble</span>(single_row<span class="op">$</span>x <span class="op">+</span><span class="st"> </span>single_row<span class="op">$</span>y)</a>
+<a class="sourceLine" id="cb25-39" data-line-number="39">  }, <span class="dt">.id =</span> <span class="st">&quot;y&quot;</span>)</a>
+<a class="sourceLine" id="cb25-40" data-line-number="40">}, <span class="dt">.id =</span> <span class="st">&quot;x&quot;</span>)</a></code></pre></div>
+</div>
+</div>
+<div id="the-clustermq-way" class="section level2">
+<h2>The clustermq way</h2>
+</div>
+<div id="tips-and-tricks" class="section level2">
+<h2>Tips and Tricks</h2>
+<div id="kill-jobsrouge-r-sessions" class="section level3">
+<h3>Kill jobs/rouge R sessions</h3>
+<p>If you did something wrong, you will most likely end up with R sessions that do not close by themselfes or are open and keep submitting jobs. A convienent way to kill these processes is to login to the HPC frontend and type (user_name_gwdg being your username):</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb26-1" data-line-number="1">htop <span class="op">-</span>u user_name_gwdg</a></code></pre></div>
+<p>With <code>F9</code> you can then select the R processes that you want to kill.</p>
+</div>
+<div id="better-connection-to-the-hpc" class="section level3">
+<h3>Better connection to the HPC</h3>
+<p>One inconvience is that the connection to HPC from your local R session can not be interrupted. If that happens, your jobs are lost (if you use <strong>future</strong>, there might be chance to collect every result in the <code>.future</code> folder).</p>
+<p>This also means that running your code from your laptop/desktop pc means that it has to be running until everything is finished. When simulations take several days, this can easily become a problem.</p>
+<p>A way we explored for such cases is to use the GWDG Cloud Server. If you install there an instance of the RStudio Server, you have a cloud based IDE that you can run from everywhere with access to the internet. By default, the RStudio Server unfortunately breaks the connection every now and then, so you have to tweak it a bit to be permanently accessible.</p>
+<p>xxx</p>
+<p>In case you use another RStudio Server, the only thing you would have to change from the things we explained here is to open a vpn connection to the <code>goenet</code>.</p>
 </div>
 </div>
 </section>
