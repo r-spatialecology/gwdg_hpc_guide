@@ -14,7 +14,7 @@
 <meta name="author" content="Maximilian Hesselbarth" />
 
 
-<title>GWDG HPC GUIDE</title>
+<title>GWDG HPC FOR R DUMMIES</title>
 
 
 
@@ -107,7 +107,7 @@ code > span.ot { color: #007020; }
 
 
 <section class="page-header">
-<h1 class="title toc-ignore project-name">GWDG HPC GUIDE</h1>
+<h1 class="title toc-ignore project-name">GWDG HPC FOR R DUMMIES</h1>
 <h4 class="author project-author">Marco Sciaini</h4>
 <h4 class="author project-author">Maximilian Hesselbarth</h4>
 </section>
@@ -189,7 +189,15 @@ code > span.ot { color: #007020; }
 </div>
 <div id="gwdg-hpc-infrastructure" class="section level2">
 <h2>GWDG HPC infrastructure</h2>
-<p>The HPC infrastructure is mostly accessible through queues. A full overview can be found <a href="here">http://hpc.gwdg.de/systems.html</a>.</p>
+<p>The HPC infrastructure is mostly accessible through queues. A full overview can be found here:</p>
+<p><a href="http://hpc.gwdg.de/systems.html" class="uri">http://hpc.gwdg.de/systems.html</a>.</p>
+<p>There are two general base queues that are of interest:</p>
+<ul>
+<li><strong>mpi</strong> - lots of cores, fewer memory, short pending time</li>
+<li><strong>fat</strong> - fewer cores, lots of memory, long pending time</li>
+</ul>
+<p>Both of these queues have manifestations, meaning -short and -long appendixes. They all have different walltime then, which influences again the pending time.</p>
+<p>More details can be found here: * <a href="https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs" class="uri">https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs</a> * <a href="https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs_for_experienced_users" class="uri">https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs_for_experienced_users</a></p>
 <div id="bsub" class="section level3">
 <h3>bsub</h3>
 <p>If you would use the HPC from the command line and without all the R packages, you would most likely use the LSF command <code>bsub</code> to start and control your jobs.</p>
@@ -211,6 +219,10 @@ code > span.ot { color: #007020; }
 <li><code>bhist</code>
 <ul>
 <li>Most relevant as <code>bhist -a</code>, which shows you a history of your finished jobs. The runtime is interesting, as it gives you also a feeling for the walltime you can specify.</li>
+</ul></li>
+<li><code>bqueues</code>
+<ul>
+<li>Look at the available queues</li>
 </ul></li>
 </ul>
 </div>
@@ -241,11 +253,11 @@ code > span.ot { color: #007020; }
 <a class="sourceLine" id="cb15-3" data-line-number="3"><span class="co"># and look for your .libPath</span></a>
 <a class="sourceLine" id="cb15-4" data-line-number="4"><span class="kw">.libPath</span>()</a></code></pre></div>
 <p>Installing GitHub packages then works like this (you would have to exchange my local path with the one you printed with <code>.libPaths</code> and obviously the package you want):</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1">withr<span class="op">::</span><span class="kw">with_libpaths</span>(<span class="st">&quot;/home/uni08/msciain/R/x86_64-pc-linux-gnu-library/3.5&quot;</span>, devtools<span class="op">::</span><span class="kw">install_github</span>(<span class="st">&quot;r-spatialecogy/landscapemetrics&quot;</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1">withr<span class="op">::</span><span class="kw">with_libpaths</span>(<span class="st">&quot;/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5&quot;</span>, devtools<span class="op">::</span><span class="kw">install_github</span>(<span class="st">&quot;r-spatialecogy/landscapemetrics&quot;</span>)</a></code></pre></div>
 </div>
 <div id="the-future-way" class="section level2">
 <h2>The future way</h2>
-<p>One of the ways to use the GWDG HPC is the future framework. The advantage of future is that you most likely can ran the code you already have and only have to do minor changes so that it works on the HPC. Furthermore, specifying how you want to parallelise your R code is quite straightforward, as you can easily control how to distribute your jobs over nodes and cores.</p>
+<p>One of the ways to use the GWDG HPC is the future package and framework. The advantage of future is that you most likely can ran the code you already have and only have to do minor changes so that it works on the HPC. Furthermore, specifying how you want to parallelise your R code is quite straightforward, as you can easily control how to distribute your jobs over nodes and cores.</p>
 <p>Getting familiar with <strong>future</strong> makes probably some sense here, as we do not cover the basics:</p>
 <p><a href="https://github.com/HenrikBengtsson/future" class="uri">https://github.com/HenrikBengtsson/future</a></p>
 <p>The necessary steps to use future on the HPC include:</p>
@@ -284,7 +296,7 @@ code > span.ot { color: #007020; }
 <a class="sourceLine" id="cb19-5" data-line-number="5"></a>
 <a class="sourceLine" id="cb19-6" data-line-number="6"><span class="co"># now we specify a future topology that fits our HPC</span></a>
 <a class="sourceLine" id="cb19-7" data-line-number="7"><span class="co"># login node -&gt; cluster nodes -&gt; core/ multiple cores</span></a>
-<a class="sourceLine" id="cb19-8" data-line-number="8">login &lt;-<span class="st"> </span><span class="kw">tweak</span>(remote, <span class="dt">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="dt">user =</span> <span class="st">'msciain'</span>) <span class="co"># local -&gt; hpc, the user is your login credential</span></a>
+<a class="sourceLine" id="cb19-8" data-line-number="8">login &lt;-<span class="st"> </span><span class="kw">tweak</span>(remote, <span class="dt">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="dt">user =</span> <span class="st">'user_name_gwdg'</span>) <span class="co"># local -&gt; hpc, the user is your login credential</span></a>
 <a class="sourceLine" id="cb19-9" data-line-number="9"></a>
 <a class="sourceLine" id="cb19-10" data-line-number="10">bsub &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_lsf, <span class="dt">template =</span> <span class="st">'lsf.tmpl'</span>, </a>
 <a class="sourceLine" id="cb19-11" data-line-number="11">              <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job.name =</span> <span class="st">'params_nlmr'</span>,</a>
@@ -332,7 +344,7 @@ code > span.ot { color: #007020; }
 <a class="sourceLine" id="cb23-2" data-line-number="2"></a>
 <a class="sourceLine" id="cb23-3" data-line-number="3"><span class="co"># there shouldn't be to much change for the login level of your plan</span></a>
 <a class="sourceLine" id="cb23-4" data-line-number="4"><span class="co"># you specify the address of the hpc and your user name</span></a>
-<a class="sourceLine" id="cb23-5" data-line-number="5">login &lt;-<span class="st"> </span><span class="kw">tweak</span>(remote, <span class="dt">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="dt">user =</span> <span class="st">'msciain'</span>)</a>
+<a class="sourceLine" id="cb23-5" data-line-number="5">login &lt;-<span class="st"> </span><span class="kw">tweak</span>(remote, <span class="dt">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="dt">user =</span> <span class="st">'user_name_gwdg'</span>)</a>
 <a class="sourceLine" id="cb23-6" data-line-number="6"></a>
 <a class="sourceLine" id="cb23-7" data-line-number="7"><span class="co"># the bsub, or cluster node, level becomes the first stage</span></a>
 <a class="sourceLine" id="cb23-8" data-line-number="8"><span class="co"># where you could make adjustment to control you experiment.</span></a>
@@ -389,7 +401,7 @@ code > span.ot { color: #007020; }
 <a class="sourceLine" id="cb25-5" data-line-number="5"><span class="kw">library</span>(<span class="st">&quot;tidyverse&quot;</span>)</a>
 <a class="sourceLine" id="cb25-6" data-line-number="6"></a>
 <a class="sourceLine" id="cb25-7" data-line-number="7"><span class="co"># login node -&gt; cluster nodes -&gt; core/ multiple cores</span></a>
-<a class="sourceLine" id="cb25-8" data-line-number="8">login &lt;-<span class="st"> </span><span class="kw">tweak</span>(remote, <span class="dt">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="dt">user =</span> <span class="st">'msciain'</span>)</a>
+<a class="sourceLine" id="cb25-8" data-line-number="8">login &lt;-<span class="st"> </span><span class="kw">tweak</span>(remote, <span class="dt">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="dt">user =</span> <span class="st">'user_name_gwdg'</span>)</a>
 <a class="sourceLine" id="cb25-9" data-line-number="9"></a>
 <a class="sourceLine" id="cb25-10" data-line-number="10"><span class="co"># We submit to the multipurpose queue with a maximum</span></a>
 <a class="sourceLine" id="cb25-11" data-line-number="11"><span class="co"># walltime of 48 hours (we specify 15 so that we</span></a>
@@ -426,13 +438,71 @@ code > span.ot { color: #007020; }
 </div>
 <div id="the-clustermq-way" class="section level2">
 <h2>The clustermq way</h2>
+<p><strong>clustermq</strong> is another package that lets you submit jobs to the HPC via ssh connector. Compared to <code>future</code> + friends, it has the advantage that it submits job arrays. Instead of gradually sending job after job, as we did it in our examples above, <strong>clustermq</strong> sends them all at once. This can be a huge time benefit, if you are able to tailor your analysis to fit certain requirements.</p>
+<p>To use <strong>clustermq</strong>, you have to install the development version of it both locally and on the HPC. But first, make sure your local system has the necessary dependencies installied:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb26-1" data-line-number="1"><span class="co"># You can skip this step on Windows and OS-X, the rzmq binary has it</span></a>
+<a class="sourceLine" id="cb26-2" data-line-number="2"><span class="co"># On a computing cluster, we recommend to use Conda or Linuxbrew</span></a>
+<a class="sourceLine" id="cb26-3" data-line-number="3"><span class="ex">brew</span> install zeromq <span class="co"># Linuxbrew, Homebrew on OS-X</span></a>
+<a class="sourceLine" id="cb26-4" data-line-number="4"><span class="ex">conda</span> install zeromq <span class="co"># Conda</span></a>
+<a class="sourceLine" id="cb26-5" data-line-number="5"><span class="fu">sudo</span> apt-get install libzmq3-dev <span class="co"># Ubuntu</span></a>
+<a class="sourceLine" id="cb26-6" data-line-number="6"><span class="fu">sudo</span> yum install zeromq3-devel <span class="co"># Fedora</span></a>
+<a class="sourceLine" id="cb26-7" data-line-number="7"><span class="ex">pacman</span> -S zeromq <span class="co"># Archlinux</span></a></code></pre></div>
+<p>and then:</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb27-1" data-line-number="1"><span class="co"># local pc</span></a>
+<a class="sourceLine" id="cb27-2" data-line-number="2">devtools<span class="op">::</span><span class="kw">install_github</span>(<span class="st">'mschubert/clustermq'</span>)</a>
+<a class="sourceLine" id="cb27-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb27-4" data-line-number="4"><span class="co"># HPC</span></a>
+<a class="sourceLine" id="cb27-5" data-line-number="5">withr<span class="op">::</span><span class="kw">with_libpaths</span>(<span class="st">&quot;/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5&quot;</span>, devtools<span class="op">::</span><span class="kw">install_github</span>(<span class="st">'mschubert/clustermq'</span>))</a></code></pre></div>
+<p>Afterwards, we need to modify the local .Rprofile with <code>usethis::edit_r_profile()</code> to include:</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb28-1" data-line-number="1"><span class="kw">soptions</span>(</a>
+<a class="sourceLine" id="cb28-2" data-line-number="2">    <span class="dt">clustermq.scheduler =</span> <span class="st">&quot;ssh&quot;</span>,</a>
+<a class="sourceLine" id="cb28-3" data-line-number="3">    <span class="dt">clustermq.ssh.host =</span> <span class="st">&quot;user@host&quot;</span>, <span class="co"># use your user and host, obviously</span></a>
+<a class="sourceLine" id="cb28-4" data-line-number="4">    <span class="dt">clustermq.ssh.log =</span> <span class="st">&quot;~/cmq_ssh.log&quot;</span> <span class="co"># log for easier debugging</span></a>
+<a class="sourceLine" id="cb28-5" data-line-number="5">)</a></code></pre></div>
+<p>… and the .Rprofile on the HPC (<code>nano .Rprofile</code> in your home directory) to include:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb29-1" data-line-number="1"><span class="kw">options</span>(</a>
+<a class="sourceLine" id="cb29-2" data-line-number="2">    <span class="dt">clustermq.scheduler =</span> <span class="st">&quot;lsf&quot;</span>,</a>
+<a class="sourceLine" id="cb29-3" data-line-number="3">    <span class="dt">clustermq.template =</span> <span class="st">&quot;/home/uni08/user_name_gwdg/lsfmq.tmpl&quot;</span></a>
+<a class="sourceLine" id="cb29-4" data-line-number="4">)</a></code></pre></div>
+<p>We then again create an lsf template as in the future workflow, with <code>nano .lsfmq.tmpl</code> we include:</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb30-1" data-line-number="1"><span class="co">#BSUB -J {{ job_name }}[1-{{ n_jobs }}]  # name of the job / array jobs</span></a>
+<a class="sourceLine" id="cb30-2" data-line-number="2"><span class="co">#BSUB -o {{ log_file | /dev/null }}      # stdout + stderr; %I for array index</span></a>
+<a class="sourceLine" id="cb30-3" data-line-number="3"><span class="co">#BSUB -q {{ queue | mpi }}         # name of the queue</span></a>
+<a class="sourceLine" id="cb30-4" data-line-number="4"><span class="co">#BSUB -W {{ walltime | 12:00 }}          # walltime</span></a>
+<a class="sourceLine" id="cb30-5" data-line-number="5"><span class="co">#BSUB -n {{ processes | 1 }}             # number of processes</span></a>
+<a class="sourceLine" id="cb30-6" data-line-number="6"><span class="co">#BSUB -R span[hosts=1]</span></a>
+<a class="sourceLine" id="cb30-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb30-8" data-line-number="8"><span class="ex">module</span> load gcc/6.3.0</a>
+<a class="sourceLine" id="cb30-9" data-line-number="9"><span class="ex">module</span> load R</a>
+<a class="sourceLine" id="cb30-10" data-line-number="10"><span class="ex">module</span> load R_GEO</a>
+<a class="sourceLine" id="cb30-11" data-line-number="11"><span class="ex">module</span> load zeromq/4.2.3</a>
+<a class="sourceLine" id="cb30-12" data-line-number="12"></a>
+<a class="sourceLine" id="cb30-13" data-line-number="13"><span class="ex">R</span> --no-save --no-restore -e <span class="st">'clustermq:::worker(&quot;{{ master }}&quot;)'</span></a></code></pre></div>
+<div id="how-to-use-clustermq" class="section level3">
+<h3>How to use clustermq</h3>
+<p><strong>clustermq</strong> does no rely on plans, as <em>future</em> did. Submitting jobs becomes as easy as:</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb31-1" data-line-number="1"><span class="kw">library</span>(clustermq)</a>
+<a class="sourceLine" id="cb31-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb31-3" data-line-number="3">fx =<span class="st"> </span><span class="cf">function</span>(x, y) x <span class="op">*</span><span class="st"> </span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>y</a>
+<a class="sourceLine" id="cb31-4" data-line-number="4"><span class="kw">Q</span>(fx, <span class="dt">x=</span><span class="dv">1</span><span class="op">:</span><span class="dv">3</span>, <span class="dt">const=</span><span class="kw">list</span>(<span class="dt">y=</span><span class="dv">10</span>), <span class="dt">n_jobs=</span><span class="dv">1</span>)</a></code></pre></div>
+<p>If you want to iterate again over rows of a data frame, you would do something like:</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb32-1" data-line-number="1"><span class="co"># Run a simple multiplication for data frame columns x and y on a worker node</span></a>
+<a class="sourceLine" id="cb32-2" data-line-number="2">fx =<span class="st"> </span><span class="cf">function</span> (x, y) x <span class="op">*</span><span class="st"> </span>y</a>
+<a class="sourceLine" id="cb32-3" data-line-number="3">df =<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">x =</span> <span class="dv">5</span>, <span class="dt">y =</span> <span class="dv">10</span>)</a>
+<a class="sourceLine" id="cb32-4" data-line-number="4"><span class="kw">Q_rows</span>(df, fx, <span class="dt">job_size =</span> <span class="dv">1</span>)</a>
+<a class="sourceLine" id="cb32-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb32-6" data-line-number="6"><span class="co"># Q_rows also matches the names of a data frame with the function arguments</span></a>
+<a class="sourceLine" id="cb32-7" data-line-number="7">fx =<span class="st"> </span><span class="cf">function</span> (x, y) x <span class="op">-</span><span class="st"> </span>y</a>
+<a class="sourceLine" id="cb32-8" data-line-number="8">df =<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">y =</span> <span class="dv">5</span>, <span class="dt">x =</span> <span class="dv">10</span>)</a>
+<a class="sourceLine" id="cb32-9" data-line-number="9"><span class="kw">Q_rows</span>(df, fx, <span class="dt">job_size =</span> <span class="dv">1</span>)</a></code></pre></div>
+</div>
 </div>
 <div id="tips-and-tricks" class="section level2">
 <h2>Tips and Tricks</h2>
 <div id="kill-jobsrouge-r-sessions" class="section level3">
 <h3>Kill jobs/rouge R sessions</h3>
 <p>If you did something wrong, you will most likely end up with R sessions that do not close by themselfes or are open and keep submitting jobs. A convienent way to kill these processes is to login to the HPC frontend and type (user_name_gwdg being your username):</p>
-<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb26-1" data-line-number="1">htop <span class="op">-</span>u user_name_gwdg</a></code></pre></div>
+<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb33-1" data-line-number="1">htop <span class="op">-</span>u user_name_gwdg</a></code></pre></div>
 <p>With <code>F9</code> you can then select the R processes that you want to kill.</p>
 </div>
 <div id="better-connection-to-the-hpc" class="section level3">

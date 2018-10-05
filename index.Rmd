@@ -159,6 +159,8 @@ are probably:
   * `bkill 0` kills every job in the current job list
 * `bhist`
   * Most relevant as `bhist -a`, which shows you a history of your finished jobs. The runtime is interesting, as it gives you also a feeling for the walltime you can specify.
+* `bqueues`
+  * Look at the available queues
 
 ### modules
 
@@ -213,12 +215,12 @@ install.packages("withr")
 
 Installing GitHub packages then works like this (you would have to exchange my local path with the one you printed with `.libPaths` and obviously the package you want):
 ```{r eval = FALSE}
-withr::with_libpaths("/home/uni08/msciain/R/x86_64-pc-linux-gnu-library/3.5", devtools::install_github("r-spatialecogy/landscapemetrics")
+withr::with_libpaths("/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5", devtools::install_github("r-spatialecogy/landscapemetrics")
 ```
 
 ## The future way
 
-One of the ways to use the GWDG HPC is the future framework.
+One of the ways to use the GWDG HPC is the future package and framework.
 The advantage of future is that you most likely can ran the code you already have and only have to do minor changes so that it works on the HPC.
 Furthermore, specifying how you want to parallelise your R code is quite straightforward, as you can easily control how to distribute your jobs
 over nodes and cores.
@@ -275,7 +277,7 @@ library("furrr")
 
 # now we specify a future topology that fits our HPC
 # login node -> cluster nodes -> core/ multiple cores
-login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'msciain') # local -> hpc, the user is your login credential
+login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'user_name_gwdg') # local -> hpc, the user is your login credential
 
 bsub <- tweak(batchtools_lsf, template = 'lsf.tmpl', 
               resources = list(job.name = 'params_nlmr',
@@ -355,7 +357,7 @@ The following code snippet explains how control the access specific queues, set 
 
 # there shouldn't be to much change for the login level of your plan
 # you specify the address of the hpc and your user name
-login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'msciain')
+login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'user_name_gwdg')
 
 # the bsub, or cluster node, level becomes the first stage
 # where you could make adjustment to control you experiment.
@@ -433,7 +435,7 @@ library("furrr")
 library("tidyverse")
 
 # login node -> cluster nodes -> core/ multiple cores
-login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'msciain')
+login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'user_name_gwdg')
 
 # We submit to the multipurpose queue with a maximum
 # walltime of 48 hours (we specify 15 so that we
@@ -468,6 +470,101 @@ fancy_statistical_model <- future_map_dfr(advanced_data, function(x) {
 }, .id = "x")
 ```
 ## The clustermq way
+
+**clustermq** is another package that lets you submit jobs to the HPC via ssh connector.
+Compared to `future` + friends, it has the advantage that it submits job arrays.
+Instead of gradually sending job after job, as we did it in our examples above, **clustermq** sends them all at once.
+This can be a huge time benefit, if you are able to tailor your analysis to fit certain requirements.
+
+
+
+To use **clustermq**, you have to install the development version of it both locally and on the HPC.
+But first, make sure your local system has the necessary dependencies installied:
+```{bash eval=FALSE}
+# You can skip this step on Windows and OS-X, the rzmq binary has it
+# On a computing cluster, we recommend to use Conda or Linuxbrew
+brew install zeromq # Linuxbrew, Homebrew on OS-X
+conda install zeromq # Conda
+sudo apt-get install libzmq3-dev # Ubuntu
+sudo yum install zeromq3-devel # Fedora
+pacman -S zeromq # Archlinux
+```
+
+and then: 
+
+```{r eval=FALSE}
+# local pc
+devtools::install_github('mschubert/clustermq')
+
+# HPC
+withr::with_libpaths("/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5", devtools::install_github('mschubert/clustermq'))
+```
+
+
+Afterwards, we need to modify the local .Rprofile with `usethis::edit_r_profile()` to include:
+
+```{r eval=FALSE}
+soptions(
+    clustermq.scheduler = "ssh",
+    clustermq.ssh.host = "user@host", # use your user and host, obviously
+    clustermq.ssh.log = "~/cmq_ssh.log" # log for easier debugging
+)
+```
+
+... and the .Rprofile on the HPC (`nano .Rprofile` in your home directory) to include:
+
+```{r eval=FALSE}
+options(
+    clustermq.scheduler = "lsf",
+    clustermq.template = "/home/uni08/user_name_gwdg/lsfmq.tmpl"
+)
+```
+
+We then again create an lsf template as in the future workflow, with `nano .lsfmq.tmpl` we include:
+
+```{bash eval=FALSE}
+#BSUB -J {{ job_name }}[1-{{ n_jobs }}]  # name of the job / array jobs
+#BSUB -o {{ log_file | /dev/null }}      # stdout + stderr; %I for array index
+#BSUB -q {{ queue | mpi }}         # name of the queue
+#BSUB -W {{ walltime | 12:00 }}          # walltime
+#BSUB -n {{ processes | 1 }}             # number of processes
+#BSUB -R span[hosts=1]
+
+module load gcc/6.3.0
+module load R
+module load R_GEO
+module load zeromq/4.2.3
+
+R --no-save --no-restore -e 'clustermq:::worker("{{ master }}")'
+```
+
+
+### How to use clustermq
+
+**clustermq** does no rely on plans, as *future* did.
+Submitting jobs becomes as easy as:
+
+```{r eval=FALSE}
+library(clustermq)
+
+fx = function(x, y) x * 2 + y
+Q(fx, x=1:3, const=list(y=10), n_jobs=1)
+```
+
+If you want to iterate again over rows of a data frame, you would do something like:
+
+```{r eval=FALSE}
+# Run a simple multiplication for data frame columns x and y on a worker node
+fx = function (x, y) x * y
+df = data.frame(x = 5, y = 10)
+Q_rows(df, fx, job_size = 1)
+
+# Q_rows also matches the names of a data frame with the function arguments
+fx = function (x, y) x - y
+df = data.frame(y = 5, x = 10)
+Q_rows(df, fx, job_size = 1)
+```
+
 
 ## Tips and Tricks
 
