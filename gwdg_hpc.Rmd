@@ -1,0 +1,268 @@
+---
+title: "GWDG HPC GUIDE"
+author: 
+- Marco Sciaini
+- Maximilian Hesselbarth
+output:
+  prettydoc::html_pretty:
+    toc: true
+    toc_depth: 2
+    theme: cayman
+    highlight: github
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## GWDG HPC
+
+This is meant to be a short introduction how you can use the GWDG HPC  (for account-holders only), specifically for R user.
+
+The aim of this guide is to enable you to use your local R session and submit jobs from your office to the GWDG HPC and afterwards retrieve the results also in your local session.
+This has the huge advantage, that you don't need to copy data from your machine to the HPC (and vice versa) and working in your IDE is most likely way more efficient than working in 
+linux shell via ssh on the HPC ...
+
+The structure of this guide is heavily influenced by our own mistakes and we hope to make it somewhat easier for future HPC user.
+In general, the our setup should also work with any other HPC and the code snippets in the end are also usable for our scheduling systems than LSF (which is used be the GWDG).
+
+Huge thanks to the GWDG HPC team that put quite some effort into installing R trifles and explaining some HPC basics to us :)
+Another big thanks to [https://twitter.com/henrikbengtsson?lang=en](Henrik Bengtsson), [https://twitter.com/_ms03?lang=en](Michael Schubert) and [https://github.com/mllg](Michel Lang) for developing such nice tools to enable even ecologists to use cluster infrastrace ;-)
+
+There are some prelimanry steps you have to take, before you can actually use the HPC these include:
+
+### 1. SSH Key
+For a convienent login and to use R via SSH connector, you need to put a SSH key on the HPC (private key on your computer, public key on the HPC).
+
+Assuming you are using linux or mac, that is rather straighforward:
+
+```{bash eval = FALSE}
+ssh-keygen -t rsa
+```
+
+and copy it to the HPC:
+
+```{bash eval = FALSE}
+ssh-copy-id gwdg_user@gwdu101.gwdg.de
+```
+
+... I think copy is not installed by default on mac, so you first have to install it:
+```{bash eval = FALSE}
+brew install ssh-copy-id
+```
+
+If you are using Windows, this guide seems to cover it:
+
+[https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows](https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows)
+
+### 2. Create .bashrc
+
+Login to the HPC via:
+
+```{bash eval = FALSE}
+ssh gwdg_user@gwdu101.gwdg.de
+```
+
+and create the file `.bashrc`:
+
+```{bash eval = FALSE}
+nano .bashrc
+```
+
+Copy and paste the following in it:
+
+```{bash eval = FALSE}
+# .bashrc
+# Source global definitions
+if [ -f /etc/bashrc ]; then
+    . /etc/bashrc
+fi
+# Uncomment the following line if you don't like systemctl's auto-paging feature:
+# export SYSTEMD_PAGER=
+# User specific aliases and functions
+
+module load gcc/6.3.0
+module load R
+module load zeromq/4.2.3
+
+source /etc/profile.d/lsf.sh
+```
+
+Environment `modules` (used via the command `module` in the above snippet) provide a way to selectively activate and deactivate modifications to the user environment which allow particular packages and versions to be found.
+Here, we tell the HPC to use a newer version of the GNU compiler and load the recent R version, R 3.5.
+Furthermore, we tell it to load zeromq, a messaging library, more details to that in section x.x.
+
+The `.bashrc` is loaded when we login to the HPC, so every time we start R now, we start with the version we selected with the `module` command.
+This is of particular interest, if you change between R versions - packages are installed for every version of R, so you have to be careful with that.
+
+### 3. Create .profile
+
+We have to do the same for a `.profile` file, as we did for the `.bashrc` file, so we create it:
+```{bash eval = FALSE}
+nano .profile
+```
+
+and copy and paste the following in it:
+
+```{bash eval = FALSE}
+## export LSF_SERVERDIR=/opt/lsf/10.1/linux2.6-glibc2.3-x86_64/etc
+## export LSF_ENVDIR=/opt/lsf/conf
+
+module load gcc/6.3.0
+module load R
+module load R_GEO
+module load zeromq/4.2.3
+```
+
+This basically serves the same purpose as our `.bashrc`, but leaving one of the two out breaks our setup.
+
+### 4. Check linux shell
+
+Login to [www.gwdg.de](www.gwdg.de) and check in your user settings that the linux shell you are usin is `/bin/ksh` and not `/bin/sh`.
+
+## Use R on the GWDG HPC
+
+If the previous steps all worked out, you should be able to login to HPC without typing your password.
+If so, using R should be no problem now and
+
+## GWDG HPC infrastructure
+
+### bsub 
+
+### Sequential jobs or exclusive nodes?
+
+## R Packages
+
+Always keep in mind that every package you use in your local scripts must also be installed on the HPC.
+Therefore, login to the HPC and start R:
+
+```{bash eval = FALSE}
+R
+```
+
+(If you followed our instructions the R version should be R 3.5.0 now)
+
+Installing R packages works as expected:
+
+```{r eval = FALSE}
+# For example:
+install.packages("tidyverse")
+```
+
+If you use development versions from GitHub, you need to specify your local package path.
+Therefore, you first need to install *withr*:
+```{r eval = FALSE}
+install.packages("withr")
+
+# and look for your .libPath
+.libPath()
+```
+
+Installing GitHub packages then works like this (you would have to exchange my local path with the one you printed with `.libPaths` and obviously the package you want):
+```{r eval = FALSE}
+withr::with_libpaths("/home/uni08/msciain/R/x86_64-pc-linux-gnu-library/3.5", devtools::install_github("r-spatialecogy/landscapemetrics")
+```
+
+## The future way
+
+One of the ways to use the GWDG HPC is the future framework.
+The advantage of future is that you most likely can ran the code you already have and only have to do minor changes so that it works on the HPC.
+Furthermore, specifying how you want to parallelise your R code is quite straightforward, as you can easily control how to distribute your jobs
+over nodes and cores.
+
+Getting familiar with **future** makes probably some sense here, as we do not cover the basics:
+
+[https://github.com/HenrikBengtsson/future](https://github.com/HenrikBengtsson/future)
+
+The necessary steps to use future on the HPC include:
+
+### 1. lsf.tmpl
+Login to the HPC and create a file called `lsf.tmpl` in your home directory:
+
+```{bash eval = FALSE}
+nano .profile
+```
+
+Copy and paste the following in it:
+
+```{bash eval = FALSE}
+## Default resources can be set in your .batchtools.conf.R by defining the variable
+## 'default.resources' as a named list.
+
+#BSUB -J <%= job.name %>                             ## Name of the job
+#BSUB -o <%= log.file %>                             ## Output is sent to logfile, stdout + stderr by default
+#BSUB -q <%= resources$queue %>                      ## Job queue
+#BSUB -W <%= resources$walltime %>                   ## Walltime in minutes
+#BSUB -R span[hosts=1]                               ## use only one host
+#BSUB -n <%= resources$processes %>                  ## number of processes
+
+## Export value of DEBUGME environemnt var to slave
+## export DEBUGME=<%= Sys.getenv("DEBUGME") %>
+
+module load gcc/6.3.0
+module load R
+module load R_GEO
+
+Rscript -e 'batchtools::doJobCollection("<%= uri %>")'
+```
+
+This file is used to control how you submit jobs. 
+It is a template that fills out the LSF `bsub` command, more details on that in the section with R code.
+
+### 2. First login
+
+*Remember that every package from now on needs to be installed on your computer and also on the HPC!*
+The following code sends every future you use in your R code to the HPC, in the order you specify in your future plan:
+
+```{r eval = FALSE}
+# laod the packages
+library("future")
+library("future.batchtools")
+library("furrr")
+
+# now we specify a future topology that fits our HPC
+# login node -> cluster nodes -> core/ multiple cores
+login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'msciain') # local -> hpc, the user is your login credential
+
+bsub <- tweak(batchtools_lsf, template = 'lsf.tmpl', 
+              resources = list(job.name = 'params_nlmr',
+                               log.file = 'params_nlmr.log',
+                               queue = 'mpi-short',
+                               walltime = '00:30', 
+                               processes = 12)) # hpc -> nodes
+
+plan(list(
+  login,
+  bsub,
+  multisession # how to run on nodes, could also be sequential
+))
+```
+
+### 3. Going down the future topology
+
+```{r eval = FALSE}
+# Before we start, despite that we have declared our future plan above,
+# we are still working on our local machine if we do not use futures:
+local_sysinfo <- Sys.info()
+local_sysinfo
+
+# To do something on the hpc, we actually have to use a future, 
+# in the following example with the future assignment %<-%
+hpc_sysinfo %<-% Sys.info()
+hpc_sysinfo
+```
+
+We now executed the function `Sys.info` on the frontend of the HPC, where we land after logging in to gwdu101.gwdg.de.
+
+The second level, the cluster nodes, can be reached if we nest a future in another future.
+Here, we are using **furrr**, which lets you use the purrr::map family with futures:
+
+```{r eval = FALSE}
+# do something on the cluster node level
+hpc_sysinfo_on_nodes  %<-%  future_map(seq_len(10), ~ Sys.info())
+hpc_sysinfo_on_nodes
+```
+
+Now, we used `%<-%`
+
+## The clustermq way
