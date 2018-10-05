@@ -355,6 +355,13 @@ This has the advantage that there are always free cores somewhere on the HPC and
 
 ### 5. .future folder
 
+**future.batchtools** creates a folder called `.future/` in your homedirectory on the HPC. 
+The jobs are there collected for each total submit in folders indicating the submit date and time.
+There you find the logs, results etc of **failed** jobs.
+If you succesfully collect the results on your local machine after finishing the jobs, the folder is empty and only contains a `.sessioninfo.txt`.
+
+Note: You should remove failed jobs there, if they are not of need anymore. After a while, this folder can use up all your disk quota on the hpc.
+
 ### Small example
 
 ## The clustermq way
