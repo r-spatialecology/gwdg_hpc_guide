@@ -1,5 +1,5 @@
 ---
-title: "GWDG HPC GUIDE"
+title: "GWDG HPC FOR R DUMMIES"
 author: 
 - Marco Sciaini
 - Maximilian Hesselbarth
@@ -27,7 +27,7 @@ The structure of this guide is heavily influenced by our own mistakes and we hop
 In general, the our setup should also work with any other HPC and the code snippets in the end are also usable for our scheduling systems than LSF (which is used be the GWDG).
 
 Huge thanks to the GWDG HPC team that put quite some effort into installing R trifles and explaining some HPC basics to us.
-Another big thanks to [https://twitter.com/henrikbengtsson?lang=en](Henrik Bengtsson), [https://twitter.com/_ms03?lang=en](Michael Schubert) and [https://github.com/mllg](Michel Lang) for developing such nice tools (future, clustermq, batchtools) to enable even ecologists to use cluster infrastrace ;-)
+Another big thanks to [Henrik Bengtsson](https://twitter.com/henrikbengtsson?lang=en), [Michael Schubert](https://twitter.com/_ms03?lang=en) and [Michel Lang](https://github.com/mllg) for developing such nice tools (future, clustermq, batchtools) to enable even ecologists to use cluster infrastrace `r emo::ji("smile")`.
 
 There are some prelimanry steps you have to take, before you can actually use the HPC these include:
 
@@ -123,7 +123,21 @@ If so, using R should be no problem now and
 ## GWDG HPC infrastructure
 
 The HPC infrastructure is mostly accessible through queues.
-A full overview can be found [http://hpc.gwdg.de/systems.html](here).
+A full overview can be found here:
+
+[http://hpc.gwdg.de/systems.html](http://hpc.gwdg.de/systems.html).
+
+There are two general base queues that are of interest:
+
+* **mpi** - lots of cores, fewer memory, short pending time
+* **fat** - fewer cores, lots of memory, long pending time
+
+Both of these queues have manifestations, meaning -short and -long appendixes.
+They all have different walltime then, which influences again the pending time.
+
+More details can be found here:
+* [https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs](https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs)
+* [https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs_for_experienced_users](https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs_for_experienced_users)
 
 ### bsub 
 
@@ -453,7 +467,6 @@ fancy_statistical_model <- future_map_dfr(advanced_data, function(x) {
   }, .id = "y")
 }, .id = "x")
 ```
-
 ## The clustermq way
 
 ## Tips and Tricks
