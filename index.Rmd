@@ -528,7 +528,11 @@ In case you use another RStudio Server, the only thing you would have to change 
 
 ## Links 
 [https://github.com/HenrikBengtsson/future](https://github.com/HenrikBengtsson/future)
+
 [https://github.com/HenrikBengtsson/future.batchtools](https://github.com/HenrikBengtsson/future.batchtools)
+
 [https://github.com/mllg/batchtools](https://github.com/mllg/batchtools)
+
 [https://github.com/DavisVaughan/furrr](https://github.com/DavisVaughan/furrr)
+
 [https://github.com/mschubert/clustermq](https://github.com/mschubert/clustermq)
