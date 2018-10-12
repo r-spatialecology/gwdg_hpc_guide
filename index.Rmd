@@ -20,7 +20,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Introduction 
 The aim of this guide is to enable you to use a local `R` session and submit jobs from your computer to the [GWDG High Performance Cluster (HPC)](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:start) and retrieve the results in your local `R` session (requires GWDG account). This has the advantage that you can work locally in your IDE (e.g. RStudio), which is way more convenient than working with Linux shell on the HPC. Also, you don't need to copy data from your machine to the HPC (and vice versa). The structure of this guide is heavily influenced by our own mistakes and we hope to make it somewhat easier for future HPC user.
 
-In general, our setup should also work with any other HPC and the code snippets should be usable for other scheduling systems than [LSF](https://www.ibm.com/support/knowledgecenter/en/SSETD4/product_welcome_platform_lsf.html) with slight modifications (which is used be the GWDG).
+In general, our setup should also work with any other HPC and the code snippets should be usable for other scheduling systems than [LSF](https://www.ibm.com/support/knowledgecenter/en/SSETD4/product_welcome_platform_lsf.html) with slight modifications (which is used by the GWDG).
 
 Huge thanks to the GWDG HPC team that put quite some effort into installing `R` packages and explaining some HPC basics to us.
 Another big thanks to [Henrik Bengtsson](https://twitter.com/henrikbengtsson?lang=en), [Michael Schubert](https://twitter.com/_ms03?lang=en) and [Michel Lang](https://github.com/mllg) for developing nice tools (future, clustermq, batchtools) to enable even ecologists to use cluster interfaces `r emo::ji("smile")`.
@@ -125,6 +125,7 @@ There are two general base queues that are of interest:
 Both queues have additional manifestations, i.e. a -short and -long appendix. This refers to the maximum walltime a job can run on the HPC. Of course this also relates to possible pending time because chances are high you have to wait longer on the -long queues. However, once your job is running you are allows to also use the queue longer.
 
 More details can be found here:
+
 * [https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs](https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs)
 * [https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs_for_experienced_users](https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs_for_experienced_users)
 
@@ -238,7 +239,8 @@ This file is used to control how you submit jobs. It allows to pass arguments as
 
 ### 2. First login
 
-*Remember that every package from now on needs to be installed on your computer and on the HPC!*
+**Remember that every package from now on needs to be installed on your computer and on the HPC!**
+
 The following code sends every `future` you use in your `R` code to the HPC. In the order you specify in your `future` plan:
 
 ```{r eval = FALSE}
@@ -291,7 +293,7 @@ hpc_sysinfo_on_nodes  %<-%  future_map(seq_len(10), ~ Sys.info())
 hpc_sysinfo_on_nodes
 ```
 
-We use `%<-%` as the first level and `future_map` as the second level of nesting. With respect to the HPC, this means that we logged in to the frontend and distributed jobs over 10 cluster nodes. Up to this level, we control how to distribute jobs on the HPC. This means we always need at least these two nested `future` levels to submit jobs. Note that the second level also controls the total number of jobs you submit. This becomes very important if we later think about sequential job submission and exclusive jobs with `future`.
+We use `%<-%` as the first level and `future_map` as the second level of nested futures. With respect to the HPC, this means that we logged in to the frontend and distributed jobs over 10 cluster nodes. Up to this level, we control how to distribute jobs on the HPC. This means we always need at least these two nested `future` levels to submit jobs. Note that the second level also controls the total number of jobs you submit. This becomes very important if we later think about sequential job submission and exclusive jobs with `future`.
 
 The **third level**, the cores on each cluster node, is adressed by the settings you specify in the second level. For example, in our second level we specify `processes = 12`. As third level we use a `multisession`. This means that we demand 12 cores on each cluster node and run the function parallel on each. Hence, our function could run on 12 cores and use the memory every core comes with.
 
@@ -527,12 +529,9 @@ A way we explored for such cases is to use the [GWDG Cloud Server](https://www.g
 In case you use another RStudio Server, the only thing you would have to change from the things we explained here is to open a VPN connection to the `goenet`.
 
 ## Links 
-[https://github.com/HenrikBengtsson/future](https://github.com/HenrikBengtsson/future)
 
-[https://github.com/HenrikBengtsson/future.batchtools](https://github.com/HenrikBengtsson/future.batchtools)
-
-[https://github.com/mllg/batchtools](https://github.com/mllg/batchtools)
-
-[https://github.com/DavisVaughan/furrr](https://github.com/DavisVaughan/furrr)
-
-[https://github.com/mschubert/clustermq](https://github.com/mschubert/clustermq)
+* [https://github.com/HenrikBengtsson/future](https://github.com/HenrikBengtsson/future)
+* [https://github.com/HenrikBengtsson/future.batchtools](https://github.com/HenrikBengtsson/future.batchtools)
+* [https://github.com/mllg/batchtools](https://github.com/mllg/batchtools)
+* [https://github.com/DavisVaughan/furrr](https://github.com/DavisVaughan/furrr)
+* [https://github.com/mschubert/clustermq](https://github.com/mschubert/clustermq)
