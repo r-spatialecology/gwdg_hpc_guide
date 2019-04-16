@@ -233,21 +233,20 @@ One of the ways to use the GWDG HPC is the `future` package and framework. The a
 The necessary steps to use future on the HPC include.
 
 ### 1. Create template to submit jobs
-Login to the HPC and create a file called `slurm.tmpl` (same same `nano slurm.tmpl`) in your home directory and copy and paste the following in it.
+Login to the HPC and create a file called `future_slurm.tmpl` (same same `nano future_slurm.tmpl`) in your home directory and copy and paste the following in it.
 
 ```{bash eval = FALSE}
-
-## < UPDATE TEMPLATE >
-
 ## Default resources can be set in your .batchtools.conf.R by defining the variable
 ## 'default.resources' as a named list.
 
-#BSUB -J <%= job.name %>                             ## Name of the job
-#BSUB -o <%= log.file %>                             ## Output is sent to logfile, stdout + stderr by default
-#BSUB -q <%= resources$queue %>                      ## Job queue
-#BSUB -W <%= resources$walltime %>                   ## Walltime in minutes
-#BSUB -R span[hosts=1]                               ## use only one host
-#BSUB -n <%= resources$processes %>                  ## number of processes
+#!/bin/sh
+#SBATCH -J <%= job.name %>                             ## Name of the job
+#SBATCH -p <%= resources$queue %>                      ## Job queue
+#SBATCH -q <%= resources$service %>                    ## QOS
+#SBATCH -t <%= resources$walltime %>                   ## Walltime in minutes
+#SBATCH -n <%= resources$processes %>                  ## number of processes
+#SBATCH -N 1				                                   ## use only one host
+#SBATCH -o <%= log.file %>                             ## Output is sent to logfile
 
 ## Export value of DEBUGME environemnt var to slave
 ## export DEBUGME=<%= Sys.getenv("DEBUGME") %>
@@ -258,7 +257,7 @@ module load R_GEO
 Rscript -e 'batchtools::doJobCollection("<%= uri %>")'
 ```
 
-This file is used to control how you submit jobs. It allows to pass arguments as `R` syntax from the `R` session to the LSF system as `sbatch` commands.
+This file is used to control how you submit jobs. It allows to pass arguments as `R` syntax from the `R` session to the SLURM system as `sbatch` commands.
 
 ### 2. First login
 
@@ -269,23 +268,25 @@ The following code sends every `future` you use in your `R` code to the HPC, as 
 ```{r eval = FALSE}
 
 # load the packages
+library("future.batchtools")
 library("future")
 library("furrr")
 
 # now we specify a future topology that fits our HPC
 # login node -> cluster nodes -> core/ multiple cores
-login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'user_name_gwdg') # local -> hpc, the user is your login credential
+login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'user_name_gwdg') # user = login credential
 
-bsub <- tweak(batchtools_lsf, template = 'slurm.tmpl',
-              resources = list(job.name = 'run_hpc',
-                               log.file = 'run_hpc.log',
-                               queue = 'mpi-short',
-                               walltime = '00:30',
-                               processes = 12)) # hpc -> nodes
+sbatch <- tweak(batchtools_slurm, template = 'future_slurm.tmpl',
+                resources = list(job.name = 'run_hpc',     # name of the job
+                                 log.file = 'run_hpc.log', # name of log file
+                                 queue = 'medium', # which partition
+                                 service = "short" # which QOS
+                                 walltime = '00:05:00', # walltime <hh:mm:ss>
+                                 processes = 12)) # number of cores
 
 plan(list(
   login,
-  bsub,
+  sbatch,
   multisession # how to run on nodes, could also be sequential
 ))
 ```
@@ -339,22 +340,23 @@ The following code snippet explains how to access specific queues, set the wallt
 # you specify the address of the hpc and your user name
 login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'user_name_gwdg')
 
-# the bsub, or cluster node, level becomes the first stage
+# the sbatch, or cluster node, level becomes the first stage
 # where you could make adjustment to control you experiment.
 # This tweak fills out the space between the curly brackets
-# in the lsf.tmpl file we created on the HPC.
+# in the future_slurm.tmpl file we created on the HPC.
 # (scroll to the right to read an explanation of every line)
-bsub <- tweak(batchtools_lsf, template = 'lsf.tmpl',       # here we tell future.batchtools where to look for the template file we created in section
-              resources = list(job.name = 'run_hpc',       # name of your jobs in the SLURM scheduling system
-                               log.file = 'run_hpc.log',   # logfiles
-                               queue = 'mpi-short',        # set the queue you plan to use
-                               walltime = '00:30',         # set a walltime for your hobs
-                               processes = 12))            # block n cores on each node
+sbatch <- tweak(batchtools_slurm, template = 'future_slurm.tmpl',
+                resources = list(job.name = 'run_hpc',     # name of the job
+                                 log.file = 'run_hpc.log', # name of log file
+                                 queue = 'medium', # which partition
+                                 service = "short" # which QOS
+                                 walltime = '00:05:00', # walltime <hh:mm:ss>
+                                 processes = 12)) # number of cores
 
 plan(list(
   login,
-  bsub,
-  multisession # we specifically need multisession now to address the 12 cores we blocked on the bsub level
+  sbatch,
+  multisession # multisession because 12 cores were blocked on the sbatch level
 ))
 ```
 
@@ -362,16 +364,17 @@ However, if your jobs are independent of each other (e.g. repetitions of the sam
 
 ```{r eval = FALSE}
 # (scroll to the right to read an explanation of every line)
-bsub <- tweak(batchtools_lsf, template = 'lsf.tmpl',       # here we tell future.batchtools where to look for the template file we created in section
-              resources = list(job.name = 'run_hpc',       # name of your jobs in the SLURM scheduling system
-                               log.file = 'run_hpc.log',   # logfiles
-                               queue = 'mpi-short',        # set the queue you plan to use
-                               walltime = '00:30',         # set a walltime for your hobs
-                               processes = 1))             # block n cores on each node
+sbatch <- tweak(batchtools_slurm, template = 'future_slurm.tmpl',
+                resources = list(job.name = 'run_hpc',     # name of the job
+                                 log.file = 'run_hpc.log', # name of log file
+                                 queue = 'medium', # which partition
+                                 service = "short" # which QOS
+                                 walltime = '00:05:00', # walltime <hh:mm:ss>
+                                 processes = 1)) # number of cores
 
 plan(list(
   login,
-  bsub,
+  sbatch,
   sequential # we need sequential here, so that every job we submit only runs on a single core
 ))
 ```
@@ -409,16 +412,17 @@ login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'user_name_gwdg')
 # exclusively (the maximum number of cores on
 # mpi nodes is 24, which means if we say 24
 # here we wait until a node is not used by anyone).
-bsub <- tweak(batchtools_lsf, template = 'lsf.tmpl',
-              resources = list(job.name = 'params_nlmr',
-                               log.file = 'params_nlmr.log',
-                               queue = 'mpi',
-                               walltime = '15:00',
-                               processes = 24))
+sbatch <- tweak(batchtools_slurm, template = 'future_slurm.tmpl',
+                resources = list(job.name = 'run_hpc',     # name of the job
+                                 log.file = 'run_hpc.log', # name of log file
+                                 queue = 'medium', # which partition
+                                 service = "normal" # which QOS
+                                 walltime = '00:15:00', # walltime <hh:mm:ss>
+                                 processes = 12)) # number of cores
 
 plan(list(
   login,
-  bsub,
+  sbatch,
   multisession # Again: multisession to distribute over all the cores
 ))
 
@@ -476,11 +480,11 @@ Also the .Rprofile on the HPC (`nano .Rprofile` in your home directory) needs to
 ```{r eval=FALSE}
 options(
     clustermq.scheduler = "slurm",
-    clustermq.template = "/home/uni08/user_name_gwdg/slurmmq.tmpl"
+    clustermq.template = "/home/uni08/user_name_gwdg/clustermq_slurm.tmpl"
 )
 ```
 
-Then, we again create an SLURM-template as in the `future workflow` with `nano slurmmq.tmpl` and insert the following.
+Then, we again create an SLURM-template as in the `future workflow` with `nano clustermq_slurm.tmpl` and insert the following.
 
 ```{bash eval=FALSE}
 #!/bin/sh
