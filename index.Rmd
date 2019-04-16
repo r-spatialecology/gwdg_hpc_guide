@@ -1,14 +1,14 @@
 ---
 title: "GWDG HPC FOR R DUMMIES"
-author: 
+author:
 - Marco Sciaini
 - Maximilian H.K. Hesselbarth
 output:
-  prettydoc::html_pretty:
-    toc: true
-    toc_depth: 2
-    theme: cayman
-    highlight: github
+ prettydoc::html_pretty:
+   toc: true
+   toc_depth: 2
+   theme: architect
+   highlight: github
 ---
 
 ```{r setup, include=FALSE}
@@ -17,54 +17,76 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # GWDG HPC
 
-## Introduction 
+## Introduction
 The aim of this guide is to enable you to use a local `R` session and submit jobs from your computer to the [GWDG High Performance Cluster (HPC)](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:start) and retrieve the results in your local `R` session (requires GWDG account). This has the advantage that you can work locally in your IDE (e.g. RStudio), which is way more convenient than working with Linux shell on the HPC. Also, you don't need to copy data from your machine to the HPC (and vice versa). The structure of this guide is heavily influenced by our own mistakes and we hope to make it somewhat easier for future HPC user.
 
-In general, our setup should also work with any other HPC and the code snippets should be usable for other scheduling systems than [LSF](https://www.ibm.com/support/knowledgecenter/en/SSETD4/product_welcome_platform_lsf.html) with slight modifications (which is used by the GWDG).
+In general, our setup should also work with any other HPC and the code snippets should be usable for other scheduling systems than [SLURM](https://slurm.schedmd.com) (which is used by the GWDG) with slight modifications.
 
-Huge thanks to the GWDG HPC team that put quite some effort into installing `R` packages and explaining some HPC basics to us.
-Another big thanks to [Henrik Bengtsson](https://twitter.com/henrikbengtsson?lang=en), [Michael Schubert](https://twitter.com/_ms03?lang=en) and [Michel Lang](https://github.com/mllg) for developing nice tools (future, clustermq, batchtools) to enable even ecologists to use cluster interfaces `r emo::ji("smile")`.
-
-There are some preliminary steps you have to take, before you can actually use the HPC these include:
+## General setup
 
 ### 1. SSH Key
 For a convenient login and to use `R` via SSH connector, you need to put a SSH key on the HPC (private key on your computer, public key on the HPC).
 
-Assuming you are using Linux or macOS this is rather straightforward:
+Assuming you are using Linux or macOS it is straightforward to generate a SSH key and copy it to the HPC using the shell/terminal.
 
 ```{bash eval = FALSE}
 ssh-keygen -t rsa
-```
-
-and copy it to the HPC:
-
-```{bash eval = FALSE}
 ssh-copy-id gwdg_user@gwdu101.gwdg.de
 ```
 
-If `copy` is not installed by default you first have to install it (macOS):
+If `copy` is not installed by default you first have to install it (macOS).
+
 ```{bash eval = FALSE}
 brew install ssh-copy-id
 ```
 
-If you are using Windows, this guide seems to cover it:
+If you are using Windows, this guide seems to cover how to connect via SSH.
 
 [https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows](https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows)
 
-Try if you can login in the HPC (without password) via: 
+Try if you can login in to the HPCin the terminal (without password) via.
+
 ```{bash eval = FALSE}
 ssh gwdg_user@gwdu101.gwdg.de
 ```
 
-### 2. Create .bashrc
+### 2. Create .profile
 
-Login to the HPC and create the file `.bashrc`:
+Because `.bashrc` is not source by Scientific Linux by default ([source](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:bashrc)), firstly we need to create a `.profile` file.
+
+```{bash eval = FALSE}
+nano .profile
+```
+
+Then, we need to copy and paste the following in it. That enables that `.bashrc` is sourced everytime.
+
+```{bash eval = FALSE}
+case "$SHELL" in
+/bin/bash)
+    . /etc/bashrc
+    . .bashrc
+    ;;
+/usr/bin/bash)
+    . /etc/bashrc
+    . .bashrc
+    ;;
+/usr/local/bin/bash)
+    . /etc/bashrc
+    . .bashrc
+    ;;
+*)  ;;
+esac
+```
+
+### 3. Create .bash-files
+
+Now, we can create a `.bashrc` file which is sourced everytime. This is convenient because it allows us to set default settings, load aliases or modules.
 
 ```{bash eval = FALSE}
 nano .bashrc
 ```
 
-Copy and paste the following in it:
+Copy the following into the `.bashrc` file. To keep everything organized, within `.bashrc` we again source different files (if they are present). This includes `.bash_aliases` and `.bash_modules`.
 
 ```{bash eval = FALSE}
 # .bashrc
@@ -72,230 +94,231 @@ Copy and paste the following in it:
 if [ -f /etc/bashrc ]; then
     . /etc/bashrc
 fi
-# Uncomment the following line if you don't like systemctl's auto-paging feature:
-# export SYSTEMD_PAGER=
-# User specific aliases and functions
 
-module load gcc/6.3.0
-module load zeromq/4.2.3
-module load R
+# load aliases
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
 
-source /etc/profile.d/lsf.sh
+# load modules
+if [ -f ~/.bash_modules ]; then
+    . ~/.bash_modules
+fi
 ```
 
-`modules`, used via the command `module` in the above snippet, provide a way to selectively activate and deactivate modifications to the user environment. This allows particular packages and versions to be found. First, we load a newer version of the GNU compiler ` gcc`. Second, we load `zeromq` a messaging library used later to submit jobs to the HPC and last we load the most recent `R` version v3.5.0 (default is v3.4.1).
-
-The `.bashrc` is loaded when we login to the HPC, so every time we start `R` now, we start with the version we selected with the `module` command. This is of particular interest, if you change between `R` versions because installed packages are only available for the version they were installed with.
-
-### 3. Create .profile
-
-Also, we have to create a `.profile` similar to the `.bashrc` file:
-```{bash eval = FALSE}
-nano .profile
-```
-
-and copy and paste the following in it:
+After we created `.bash_aliases` (using `nano` as before), we suggest the following aliases to be copied into the file. `.bash_aliases` makes sure they are available on the HPC and allow an easier application of common SLURM functions.
 
 ```{bash eval = FALSE}
-## export LSF_SERVERDIR=/opt/lsf/10.1/linux2.6-glibc2.3-x86_64/etc
-## export LSF_ENVDIR=/opt/lsf/conf
+alias jobs_p='squeue'
+alias jobs_med='squeue --partition=medium-fas,medium-fmz'
+alias jobs_fat='squeue --partition=fat-fas,fat-fmz'
+alias jobs_user='squeue -u $USER'
+alias jobs_run='squeue -u $USER --states=RUNNING'
+alias jobs_pen='squeue -u $USER --states=PENDING'
+alias jobs_n='squeue -u $USER --states=RUNNING | wc -l'
+alias jobs_kill='scancel -u $USER'
+alias jobs_info='sacct -u $USER --format=JobID,Partition,QOS,Elapsed,AllocNodes,AveCPU,AveRSS,MaxRSS,NTasks'
+alias monitor='htop -u $USER'
 ```
 
-This ensures that after we login to the HPC we find the commands such as `bsub` and `bjobs`.
+Now, we need to create `.bash_modules` (again, using `nano`) to be able to automatically import modules. modules provide a way to selectively activate and deactivate modifications to the user environment. This allows particular packages and versions to be found. First, we load the GNU compiler ` gcc`. Second, we load `zeromq` a messaging library used later to submit jobs to the HPC. Additionally, we load `R_GEO` to later load certain spatial packages in `R`. Of coures it's possible to load any modules which are needed (to see all available modules, use `module available`).
+
+```{bash eval = FALSE}
+module load gcc
+module load zeromq
+module load R_GEO
+```
 
 ### 4. Check Linux shell
 
 Login to [www.gwdg.de](www.gwdg.de) and check in your user settings if the Linux shell is set to `/bin/ksh` (and not `/bin/sh`).
 
-## Use R on the GWDG HPC
+### 5. Try to run `R` on the HPC
 
-If the previous steps all worked out, you should be able to login to HPC without typing your password. If so, using R should be no problem now.
+If the previous steps all worked out, you should be able to login to HPC without typing your password. If so, using `R` should be no problem now. The following should login you to the HPC frontend and start a `R` terminal.
+
+```{bash eval = FALSE}
+ssh gwdg_user@gwdu101.gwdg.de
+R
+```
 
 ## GWDG HPC infrastructure
 
-The HPC infrastructure is mostly accessible through queues. A full overview can be found here:
+The HPC infrastructure is mostly accessible through partitions (formerly queues).A full overview can be found here.
 
 [http://hpc.gwdg.de/systems.html](http://hpc.gwdg.de/systems.html).
 
-There are two general base queues that are of interest:
+There are two general base queues that are of interest.
 
-* **mpi** - lots of cores, fewer memory, short pending time
+* **medium** - lots of cores, fewer memory, short pending time (formerly MPI)
 * **fat** - fewer cores, lots of memory, long pending time
 
-Both queues have additional manifestations, i.e. a -short and -long appendix. This refers to the maximum walltime a job can run on the HPC. Of course this also relates to possible pending time because chances are high you have to wait longer on the -long queues. However, once your job is running you are allows to also use the queue longer.
+Both partitions have additional "quality of service" (QOS), i.e. "normal", "short", "long". This refers to the maximum walltime a job can run on the HPC. Of course this also relates to possible pending time because chances are high you have to wait longer on the -long queues. However, once your job is running you are allows to also use the queue longer.
 
-More details can be found here:
+More details can be found here.
 
-* [https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs](https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs)
-* [https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs_for_experienced_users](https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs_for_experienced_users)
+* [RUNNING JOBS WITH SLURM](https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs_slurm)
+* [OUTDATED RUNNING JOBS (FOR EXPERIENCED USERS)](https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs_for_experienced_users)
 
-### bsub 
+### sbatch command
 
-If you would use the HPC from the command line, you would most likely use the LSF command `bsub` to start and control your jobs on the Linux shell. However, we are going to use regular `R` syntax. To adjust your submission of jobs and understand error messages it is important to remember that underneath we still submit jobs via `bsub` only with `R` as proxy.
+If you would use the HPC from the command line, you would most likely use the SLURM command `sbatch` to start and control your jobs on the Linux shell. However, we are going to use regular `R` syntax. To adjust your submission of jobs and understand error messages it is important to remember that underneath we still submit jobs via `sbatch` only with `R` as proxy.
 
-### LSF commands
+### General SLURM commands
 
-The most important commands to monitor and control your jobs on the HPC are :
+Previsouly, we defined aliases for the most important commands to monitor and control your jobs on the HPC. Of course, it is possible to change this list by modifiying `.bash_aliases`. Also, it's possible to combine all aliases with all default SLURM options.
 
-* `bjobs`
-  * Shows scheduled jobs with their current status (e.g. pending or running).
-* `bhist`
-  * Shows history of jobs. Helpful especially in combination with `bhist -d` to show history of all finished jobs. Can be interesting to get information about the required walltime.
-* `bkill <jobid>`
-  * Kill a certain job while it is still pending or running 
-  * `bkill 0` kills every job in the current job list
-* `bqueues`
-  * Look at the available queues
+* `sinfo`: General information about all partitions
+* `jobs_p`/`jobs_med`/`jobs_fat`: All jobs submitted to all/medium/fat partition(s)
+* `jobs_user`/`jobs_run`/`jobs_pen`: Only own all/running/pending submitted jobs
+* `jobs_n`: Number of own running jobs. Because the header is counted, actual count is n - 1
+* `jobs_kill`: Kill all submitted jobs
+* `jobs_info`: Information about finished jobs
 
-### modules
+### Loading modules
 
-As described above, modules help you select software versions you need to run your code. To see all available modules use: 
+As described above, modules help you select software versions you need to run your code. To see all available modules use.
+
 ```{bash eval = FALSE}
 module avail
 ```
 
-And to load a needed module use:
+And to load a needed module use.
+
 ```{bash eval = FALSE}
 module load R
 ```
 
-It is also possible to list all loaded modules. This list should at least contain the ones you specified in the `.bashrc`.
+It is also possible to list all loaded modules. This list should at least contain the ones you specified in the `.bash_modules`.
+
 ```{bash eval = FALSE}
 module list
 ```
 
-And of course you can also detach modules:
+And of course you can also detach selected modules or all modules at once. Disconnecting and reconnecting via ssh also removes all modules. But remember, all modules loaded via the `.bash_modules` will be loaded automatically.
+
 ```{bash eval = FALSE}
 module purge R
+module purge
 ```
 
-Disconnecting and reconnecting via ssh also removes all modules. But remember, all modules loaded via the `.bashrc` and `.profile` will be loaded automatically.
+## Installing packages
 
-## R Packages
+Always keep in mind that every package you use in your local scripts must also be installed on the HPC. This must be done for all `R` versions seperatly, i.e. if `R` is updated on the HPC you need to re-install all packages. Therefore, login to the HPC and start `R`.
 
-Always keep in mind that every package you use in your local scripts must also be installed on the HPC. Therefore, login to the HPC and start `R` (if you followed the instructions correctly, the `R`version should be v3.5.0):
-
-```{bash eval = FALSE}
-R
-```
-
-Installing R packages works as expected. The only difference to installing packages locally is that `R` asks you to use your private library to which you need to agree. This is due to the loaded modules. 
+Installing `R` packages works as expected. The only difference to installing packages locally is that `R` might asks you to use your private library to which you need to agree. This is due to the loaded modules.
 
 ```{r eval = FALSE}
-# For example:
+# For example
 install.packages("tidyverse")
 ```
 
-If you want to install packages from [GitHub](https://github.com/), you need to specify your local package path. Therefore, you first need to install `withr`:
+If you want to install packages from [GitHub](https://github.com/), you need to specify your local package path. Therefore, you first need to install the `devtools` and `withr` package. Now, you need to provide the path where the package should be installed. You can get this path using `.libPaths`. This path is wrapped around the `install_github()` function.
+
 ```{r eval = FALSE}
+install.packages("devtools")
 install.packages("withr")
 
 # and look for your .libPath
-.libPath()
+.libPaths()
+
+withr::with_libpaths(new = "/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5",
+                     code = devtools::install_github("r-spatialecogy/landscapemetrics")
 ```
 
-Installing GitHub packages then works like this (you would have to exchange my local path with the one you printed with `.libPaths` and obviously the package you want):
-```{r eval = FALSE}
-withr::with_libpaths("/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5", devtools::install_github("r-spatialecogy/landscapemetrics")
-```
-
-## The future way
+## Using the future package
 
 One of the ways to use the GWDG HPC is the `future` package and framework. The advantage of `future` is that you can run code you already have on the HPC with only minor changes. Furthermore, specifying how you want to parallelise your `R` code is quite straightforward, as you can easily control how to distribute your jobs over nodes and cores. A basic knowledge of `future` is advised [https://github.com/HenrikBengtsson/future](https://github.com/HenrikBengtsson/future).
 
-The necessary steps to use future on the HPC include:
+The necessary steps to use future on the HPC include.
 
-### 1. lsf.tmpl
-Login to the HPC and create a file called `lsf.tmpl` in your home directory:
-
-```{bash eval = FALSE}
-nano lsf.tmpl
-```
-
-Copy and paste the following in it:
+### 1. Create template to submit jobs
+Login to the HPC and create a file called `future_slurm.tmpl` (same same `nano future_slurm.tmpl`) in your home directory and copy and paste the following in it.
 
 ```{bash eval = FALSE}
 ## Default resources can be set in your .batchtools.conf.R by defining the variable
 ## 'default.resources' as a named list.
 
-#BSUB -J <%= job.name %>                             ## Name of the job
-#BSUB -o <%= log.file %>                             ## Output is sent to logfile, stdout + stderr by default
-#BSUB -q <%= resources$queue %>                      ## Job queue
-#BSUB -W <%= resources$walltime %>                   ## Walltime in minutes
-#BSUB -R span[hosts=1]                               ## use only one host
-#BSUB -n <%= resources$processes %>                  ## number of processes
+#!/bin/sh
+#SBATCH -J <%= job.name %>                             ## Name of the job
+#SBATCH -p <%= resources$queue %>                      ## Job queue
+#SBATCH -q <%= resources$service %>                    ## QOS
+#SBATCH -t <%= resources$walltime %>                   ## Walltime in minutes
+#SBATCH -n <%= resources$processes %>                  ## number of processes
+#SBATCH -N 1				                                   ## use only one host
+#SBATCH -o <%= log.file %>                             ## Output is sent to logfile
 
 ## Export value of DEBUGME environemnt var to slave
 ## export DEBUGME=<%= Sys.getenv("DEBUGME") %>
 
-module load gcc/6.3.0
-module load R
+module load gcc
 module load R_GEO
 
 Rscript -e 'batchtools::doJobCollection("<%= uri %>")'
 ```
 
-This file is used to control how you submit jobs. It allows to pass arguments as `R` syntax from the `R` session to the LSF system as `bsub` commands.
+This file is used to control how you submit jobs. It allows to pass arguments as `R` syntax from the `R` session to the SLURM system as `sbatch` commands.
 
 ### 2. First login
 
 **Remember that every package from now on needs to be installed on your computer and on the HPC!**
 
-The following code sends every `future` you use in your `R` code to the HPC. In the order you specify in your `future` plan:
+The following code sends every `future` you use in your `R` code to the HPC, as specified by the `future` plan.
 
 ```{r eval = FALSE}
-# laod the packages
-library("future")
+
+# load the packages
 library("future.batchtools")
+library("future")
 library("furrr")
 
 # now we specify a future topology that fits our HPC
 # login node -> cluster nodes -> core/ multiple cores
-login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'user_name_gwdg') # local -> hpc, the user is your login credential
+login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'user_name_gwdg') # user = login credential
 
-bsub <- tweak(batchtools_lsf, template = 'lsf.tmpl', 
-              resources = list(job.name = 'params_nlmr',
-                               log.file = 'params_nlmr.log',
-                               queue = 'mpi-short',
-                               walltime = '00:30', 
-                               processes = 12)) # hpc -> nodes
+sbatch <- tweak(batchtools_slurm, template = 'future_slurm.tmpl',
+                resources = list(job.name = 'run_hpc',     # name of the job
+                                 log.file = 'run_hpc.log', # name of log file
+                                 queue = 'medium', # which partition
+                                 service = "short" # which QOS
+                                 walltime = '00:05:00', # walltime <hh:mm:ss>
+                                 processes = 12)) # number of cores
 
 plan(list(
   login,
-  bsub,
+  sbatch,
   multisession # how to run on nodes, could also be sequential
 ))
 ```
 
 ### 3. Going down the future topology
 
-We can now reach the **first level** of the HPC, the frontend, with:
+We can now reach the **first level** of the HPC (frontend). We now executed the function `Sys.info` on the frontend of the HPC, where we land after logging in to gwdu101.gwdg.de.
 
 ```{r eval = FALSE}
 # Before we start, despite that we have declared our future plan above,
 # we are still working on our local machine if we do not use futures:
 local_sysinfo <- Sys.info()
+
 local_sysinfo
 
-# To do something on the hpc, we actually have to use a future, 
+# To do something on the hpc, we actually have to use a future,
 # in the following example with the future assignment %<-%
 hpc_sysinfo %<-% Sys.info()
+
 hpc_sysinfo
 ```
 
-We now executed the function `Sys.info` on the frontend of the HPC, where we land after logging in to gwdu101.gwdg.de.
-
-The **second level**, the cluster nodes, can be reached  with a nested `future`. Here, we are using `furrr`, which lets you use the `purrr::map` family with `futures`:
+The **second level**, the cluster nodes, can be reached  with a nested `future`. Here, we are using `furrr`, which lets you use the `purrr::map` family with `futures`. We use `%<-%` as the first level and `future_map` as the second level of nested futures. With respect to the HPC, this means that we logged in to the frontend and distributed jobs over 10 cluster nodes. Up to this level, we control how to distribute jobs on the HPC. This means we always need at least these two nested `future` levels to submit jobs. Note that the second level also controls the total number of jobs you submit. This becomes very important if we later think about sequential job submission and exclusive jobs with `future`.
 
 ```{r eval = FALSE}
 # do something on the cluster node level
 hpc_sysinfo_on_nodes  %<-%  future_map(seq_len(10), ~ Sys.info())
+
 hpc_sysinfo_on_nodes
 ```
 
-We use `%<-%` as the first level and `future_map` as the second level of nested futures. With respect to the HPC, this means that we logged in to the frontend and distributed jobs over 10 cluster nodes. Up to this level, we control how to distribute jobs on the HPC. This means we always need at least these two nested `future` levels to submit jobs. Note that the second level also controls the total number of jobs you submit. This becomes very important if we later think about sequential job submission and exclusive jobs with `future`.
-
-The **third level**, the cores on each cluster node, is adressed by the settings you specify in the second level. For example, in our second level we specify `processes = 12`. As third level we use a `multisession`. This means that we demand 12 cores on each cluster node and run the function parallel on each. Hence, our function could run on 12 cores and use the memory every core comes with.
+The **third level**, the cores on each cluster node, is adressed by the settings you specify in the second level. For example, in our second level we specify `processes = 12`. As third level we use a `multisession`. This means that we demand 12 cores on each cluster node and run the function parallel on each. Hence, our function could run on 12 cores and use the memory every core comes with. Here, we distribute our jobs over 10 nodes that have at least 12 available cores. In total, we therefore execute 10 x 12 times `Sys.info()`. `hpc_sysinfo_on_node_cores` is therefore a two dimensional list, with 10 elements where each of these has again 12 elements. The 12 elements in each outer dimension of the list should be the same, but differ between the unique outer elements overall.
 
 ```{r eval = FALSE}
 # do something on core level of each cluster node
@@ -304,13 +327,11 @@ hpc_sysinfo_on_node_cores  %<-%  future_map(seq_len(10), function(x){
 })
 ```
 
-Here, we distribute our jobs over 10 nodes that have at least 12 available cores. In total, we therefore execute 10 x 12 times `Sys.info()`. `hpc_sysinfo_on_node_cores` is therefore a two dimensional list, with 10 elements where each of these has again 12 elements. The 12 elements in each outer dimension of the list should be the same, but differ between the unique outer elements overall.
-
-### 4. future.batchtools lsf template
+### 4. Submitting jobs efficiently 
 
 The `future` plans are crucial, as they specify how to distribute jobs. Therefore, before submitting jobs to the HPC make sure that the architecture of your plan and how your code is parallelised match. Otherwise, you bypass the scheduling system and drain ressources from other users.
 
-The following code snippet explains how to access specific queues, set the walltime and design a sequential plan:
+The following code snippet explains how to access specific queues, set the walltime and design a sequential plan. This setup makes sense if the jobs depend of each other, need a specific chip infrastructure or have memory needs that are only satisfied if you block whole cluster nodes and run them there exclusively.
 
 ```{r eval = FALSE}
 # login node -> cluster nodes -> core/ multiple cores
@@ -319,65 +340,64 @@ The following code snippet explains how to access specific queues, set the wallt
 # you specify the address of the hpc and your user name
 login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'user_name_gwdg')
 
-# the bsub, or cluster node, level becomes the first stage
+# the sbatch, or cluster node, level becomes the first stage
 # where you could make adjustment to control you experiment.
 # This tweak fills out the space between the curly brackets
-# in the lsf.tmpl file we created on the HPC.
+# in the future_slurm.tmpl file we created on the HPC.
 # (scroll to the right to read an explanation of every line)
-bsub <- tweak(batchtools_lsf, template = 'lsf.tmpl',            # here we tell future.batchtools where to look for the template file we created in section
-              resources = list(job.name = 'params_nlmr',        # name of your jobs in the LSF scheduling system
-                               log.file = 'params_nlmr.log',    # future creates a hidden folder (next section), where it stores logfiles with this name for every job
-                               queue = 'mpi-short',             # set the queue you plan to use
-                               walltime = '00:30',              # set a walltime for your hobs
-                               processes = 12))                 # block n cores on each node
+sbatch <- tweak(batchtools_slurm, template = 'future_slurm.tmpl',
+                resources = list(job.name = 'run_hpc',     # name of the job
+                                 log.file = 'run_hpc.log', # name of log file
+                                 queue = 'medium', # which partition
+                                 service = "short" # which QOS
+                                 walltime = '00:05:00', # walltime <hh:mm:ss>
+                                 processes = 12)) # number of cores
 
 plan(list(
   login,
-  bsub,
-  multisession # we specifically need multisession now to address the 12 cores we blocked on the bsub level
+  sbatch,
+  multisession # multisession because 12 cores were blocked on the sbatch level
 ))
 ```
 
-This setup makes sense if the jobs depend of each other, need a specific chip infrastructure or have memory needs that are only satisfied if you block whole cluster nodes and run them there exclusively.
-
-However, if your jobs are independent of each other (e.g. repetitions of the same function) and do not need more memory than one core provides, it makes sense to submit a high number of very small jobs. Instead of blocking a whole node and running your function on all availaible nodes in parallel (submitted as one job), it is also possible to submit 12 single jobs but only demand one core per job. This has the advantage that the pending time will be decreased enormously. The reason for this is that the jobs will be submitted to any available free slot (1 core) on the cluster. The LSF system automatically schedules these small jobs with a higher priority in order to use the capacities optimally.
+However, if your jobs are independent of each other (e.g. repetitions of the same function) and do not need more memory than one core provides, it makes sense to submit a high number of very small jobs. Instead of blocking a whole node and running your function on all availaible nodes in parallel (submitted as one job), it is also possible to submit 12 single jobs but only demand one core per job. This has the advantage that the pending time will be decreased enormously. The reason for this is that the jobs will be submitted to any available free slot (1 core) on the cluster. The SLURM system automatically schedules these small jobs with a higher priority in order to use the capacities optimally.
 
 ```{r eval = FALSE}
 # (scroll to the right to read an explanation of every line)
-bsub <- tweak(batchtools_lsf, template = 'lsf.tmpl',            # here we tell future.batchtools where to look for the template file we created in section
-              resources = list(job.name = 'params_nlmr',        # name of your jobs in the LSF scheduling system
-                               log.file = 'params_nlmr.log',    # future creates a hidden folder (next section), where it stores logfiles with this name for every job
-                               queue = 'mpi-short',             # set the queue you plan to use
-                               walltime = '00:30',              # set a walltime for your hobs
-                               processes = 1))                  # block 1 cores on each node
+sbatch <- tweak(batchtools_slurm, template = 'future_slurm.tmpl',
+                resources = list(job.name = 'run_hpc',     # name of the job
+                                 log.file = 'run_hpc.log', # name of log file
+                                 queue = 'medium', # which partition
+                                 service = "short" # which QOS
+                                 walltime = '00:05:00', # walltime <hh:mm:ss>
+                                 processes = 1)) # number of cores
 
 plan(list(
   login,
-  bsub,
+  sbatch,
   sequential # we need sequential here, so that every job we submit only runs on a single core
 ))
 ```
 
 ### 5. .future folder
 
-`future.batchtools` creates a folder called `.future/` on the HPC in your home directory. In this folder all submitted jobs are collected and the folder structure indicates the date and time of submission. If all jobs are collected succesfully and retrieved on your local computer, the folder is empty and only contains a `.sessioninfo.txt`. However, you can find all logs and (partial) results failed jobs.  
+`future.batchtools` creates a folder called `.future/` on the HPC in your home directory. In this folder all submitted jobs are collected and the folder structure indicates the date and time of submission. If all jobs are collected succesfully and retrieved on your local computer, the folder is empty and only contains a `.sessioninfo.txt`. However, you can find all logs and (partial) results failed jobs.
 
 Note: You should remove failed jobs there from time to time. After a while, this folder can use up all your disk quota on the HPC.
 
-### 6. Small example
+### 6. Example
 
-A very basic demand one could probably have to the HPC:
+A very basic demand one could probably have to the HPC.
 
-- 120 cores to simulate jobs
-- More than 10 GB of RAM
-- Functions need about 12 hours to run
+* 120 cores to simulate jobs
+* More than 10 GB of RAM
+* Functions need about 12 hours to run
 
-To run something like that, we would do:
+To run something like that, we would do the following.
 
 ```{r eval = FALSE}
 # laod the packages
 library("future")
-library("future.batchtools")
 library("furrr")
 library("tidyverse")
 
@@ -392,16 +412,17 @@ login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'user_name_gwdg')
 # exclusively (the maximum number of cores on
 # mpi nodes is 24, which means if we say 24
 # here we wait until a node is not used by anyone).
-bsub <- tweak(batchtools_lsf, template = 'lsf.tmpl',            
-              resources = list(job.name = 'params_nlmr',        
-                               log.file = 'params_nlmr.log',    
-                               queue = 'mpi',             
-                               walltime = '15:00',              
-                               processes = 24))                 
+sbatch <- tweak(batchtools_slurm, template = 'future_slurm.tmpl',
+                resources = list(job.name = 'run_hpc',     # name of the job
+                                 log.file = 'run_hpc.log', # name of log file
+                                 queue = 'medium', # which partition
+                                 service = "normal" # which QOS
+                                 walltime = '00:15:00', # walltime <hh:mm:ss>
+                                 processes = 12)) # number of cores
 
 plan(list(
   login,
-  bsub,
+  sbatch,
   multisession # Again: multisession to distribute over all the cores
 ))
 
@@ -416,11 +437,13 @@ fancy_statistical_model <- future_map_dfr(advanced_data, function(x) {
   }, .id = "y")
 }, .id = "x")
 ```
-## The clustermq way
+
+## Using the clustermq package
 
 `clustermq` is another package that lets you submit jobs to the HPC via ssh connector. Compared to `future` (and "friends"), it has the advantage that it submits job arrays. Instead of gradually sending job after job, as we did it in our examples above, `clustermq` sends them all at once. This can be a huge time benefit, if you are able to tailor your analysis to fit certain requirements.
 
-First, make sure your local system has the necessary dependencies installed:
+First, make sure your local system has the necessary dependencies installed.
+
 ```{bash eval=FALSE}
 # You can skip this step on Windows and OS-X, the rzmq binary has it
 # On a computing cluster, we recommend to use Conda or Linuxbrew
@@ -431,8 +454,8 @@ sudo yum install zeromq3-devel # Fedora
 pacman -S zeromq # Archlinux
 ```
 
-To use `clustermq`, you have to install the development version of it both locally and on the HPC.
- 
+To use `clustermq`, you have to install it both locally and on the HPC.
+
 ```{r eval=FALSE}
 # local pc
 devtools::install_github('mschubert/clustermq')
@@ -446,7 +469,7 @@ Afterwards, we need to modify the local .Rprofile with `usethis::edit_r_profile(
 
 ```{r eval=FALSE}
 options(
-    clustermq.scheduler = "ssh",
+    clustermq.scheduler = "slurm",
     clustermq.ssh.host = "user@host", # use your user and host, obviously
     clustermq.ssh.log = "~/cmq_ssh.log" # log for easier debugging
 )
@@ -456,32 +479,35 @@ Also the .Rprofile on the HPC (`nano .Rprofile` in your home directory) needs to
 
 ```{r eval=FALSE}
 options(
-    clustermq.scheduler = "lsf",
-    clustermq.template = "/home/uni08/user_name_gwdg/lsfmq.tmpl"
+    clustermq.scheduler = "slurm",
+    clustermq.template = "/home/uni08/user_name_gwdg/clustermq_slurm.tmpl"
 )
 ```
 
-Then, we again create an lsf-template as in the `future workflow` with `nano .lsfmq.tmpl`:
+Then, we again create an SLURM-template as in the `future workflow` with `nano clustermq_slurm.tmpl` and insert the following.
 
 ```{bash eval=FALSE}
-#BSUB -J {{ job_name }}[1-{{ n_jobs }}]  # name of the job / array jobs
-#BSUB -o {{ log_file | /dev/null }}      # stdout + stderr; %I for array index
-#BSUB -q {{ queue | mpi }}         # name of the queue
-#BSUB -W {{ walltime | 12:00 }}          # walltime
-#BSUB -n {{ processes | 1 }}             # number of processes
-#BSUB -R span[hosts=1]
+#!/bin/sh
+#SBATCH --job-name={{ job_name }} # job name
+#SBATCH --partition={{ queue | medium }} # name of queue
+#SBATCH --qos={{ service | normal }} # which special QOS (short/long)
+#SBATCH --time={{ walltime | 12:00:00 }} # walltime
+#SBATCH --array=1-{{ n_jobs }} # number of processes
+#SBATCH --nodes={{ nodes | 1 }} # if 1 put load on one node
+#SBATCH --output={{ log_file | /dev/null }}
+#SBATCH --error={{ log_file | /dev/null }}
 
-module load gcc/6.3.0
-module load zeromq/4.2.3
-module load R
+module load gcc
+module load zeromq
+module load R_GEO
 
 R --no-save --no-restore -e 'clustermq:::worker("{{ master }}")'
 ```
 
 
-### How to use clustermq
+1. ### How to use clustermq
 
-`clustermq` does no rely on plans as `future`. Submitting jobs becomes as easy as:
+`clustermq` does no rely on plans as `future`. Submitting jobs becomes as easy as providing a function and a list or vector to iterate over. In the example, for each `x = 1...3` a single job is submitted to the HPC. Contrastingly, `y = 10` is hold constant for all submitted jobs. In case you want to export user-defined functions, you need to use the `export` argument. 
 
 ```{r eval=FALSE}
 library(clustermq)
@@ -490,48 +516,58 @@ fx = function(x, y) x * 2 + y
 Q(fx, x = 1:3, const = list(y = 10), n_jobs = 1)
 ```
 
-In the example, for each `x = 1...3` a single job is submitted to the HPC. Contrastingly, `y = 10` is hold constant for all submitted jobs.
-
-If you want to iterate again over rows of a data frame, you would do something like:
+It's also possible to iterate over rows of a data frame.
 
 ```{r eval=FALSE}
 # Run a simple multiplication for data frame columns x and y on a worker node
 fx = function (x, y) x * y
+
 df = data.frame(x = 5, y = 10)
+
 Q_rows(df, fx, job_size = 1)
 
 # Q_rows also matches the names of a data frame with the function arguments
 fx = function (x, y) x - y
+
 df = data.frame(y = 5, x = 10)
+
 Q_rows(df, fx, job_size = 1)
 ```
 
-In case you want to export functions, you need to use the `export` argument.
+All parameters within ``{{ }}`` in the template file can be specified using the template argument of the `Q()` function providing a list. Therefore, it is very easy to e.g. submit to the short QOS and set the walltime to 5 minutes (<hh:mm:ss>). Of course, additional arguments can be added to the template.
+
+```{r eval=FALSE}
+Q(fx, x = 1:3, const = list(y = 10), n_jobs = 3, 
+  template = list(walltime = "00:05:00", 
+                  service = "short"))
+```
 
 ## Tips and Tricks
 
-### Kill jobs/rouge R sessions
+### 1.Kill jobs/R sessions
 
-In case something goes wrong while submitting jobs, there will be most likely `R` sessions that do not close by themselfes or are open and keep submitting jobs. A convienent way to kill these processes is to login to the HPC frontend and type:
+There is an alias to kill already submitted jobs. In case something goes wrong while submitting jobs, there will be most likely several `R` sessions that do not close by themselfes or are open and keep submitting jobs. A convienent way to kill these processes is to login to the HPC frontend and use the defined alias `monitor` to enter the process manger `htop`. With `F9` you can then select the `R` processes that you want to kill and exit the process manager using `F10`.
 
-```{r eval = FALSE}
-htop -u user_name_gwdg # use your own username
+```{bash eval = FALSE}
+jobs_kill
 ```
 
-With `F9` you can then select the R processes that you want to kill and exit the `htop` using `F10`.
-
-### Better connection to the HPC
+### 2. Better connection to the HPC
 
 One inconvience is that the connection to HPC from your local `R` session can not be interrupted. If that happens, your jobs are lost (if you use `future`, there might be chance to collect every result in the `.future` folder). This also means that running your code from your local computer means that it has to be running until everything is finished. When your code take several days, this can easily become a problem.
 
-A way we explored for such cases is to use the [GWDG Cloud Server](https://www.gwdg.de/de/server-services/gwdg-cloud-server). If you install there an instance of RStudio Server, you have a cloud based IDE that you can run from everywhere with access to the internet. By default, the RStudio Server unfortunately breaks the connection every now and then, so you have to tweak it a bit to be permanently accessible.
+A way we explored for such cases is to use the [GWDG Cloud Server](https://www.gwdg.de/de/server-services/gwdg-cloud-server). If you install there an instance of RStudio Server, you have a cloud based IDE that you can run from everywhere with access to the internet. By default, the RStudio Server unfortunately breaks the connection every now and then, so you have to tweak it a bit to be permanently accessible. Also the SSH connection becomes a bit tricky from the server.
 
 In case you use another RStudio Server, the only thing you would have to change from the things we explained here is to open a VPN connection to the `goenet`.
 
-## Links 
+## Links
 
 * [https://github.com/HenrikBengtsson/future](https://github.com/HenrikBengtsson/future)
 * [https://github.com/HenrikBengtsson/future.batchtools](https://github.com/HenrikBengtsson/future.batchtools)
 * [https://github.com/mllg/batchtools](https://github.com/mllg/batchtools)
 * [https://github.com/DavisVaughan/furrr](https://github.com/DavisVaughan/furrr)
 * [https://github.com/mschubert/clustermq](https://github.com/mschubert/clustermq)
+
+## Acknowledgments
+Huge thanks to the GWDG HPC team that put quite some effort into installing `R` packages and explaining some HPC basics to us.
+Another big thanks to [Henrik Bengtsson](https://twitter.com/henrikbengtsson?lang=en), [Michael Schubert](https://twitter.com/_ms03?lang=en) and [Michel Lang](https://github.com/mllg) for developing nice tools (future, clustermq, batchtools) to enable even ecologists to use cluster interfaces `r emo::ji("smile")`.
