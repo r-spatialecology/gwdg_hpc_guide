@@ -137,7 +137,7 @@ code > span.ot { color: #007020; }
 <div id="introduction" class="section level2">
 <h2>Introduction</h2>
 <p>The aim of this guide is to explain how to use a local <code>R</code> session and submit jobs to the <a href="https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:start"><em>GWDG</em> High Performance Cluster</a> (HPC) and retrieve the results in the same <code>R</code> session (requires <em>GWDG</em> account). The big advantage of this is that working locally in an IDE (e.g. <a href="https://www.rstudio.com">RStudio</a>) is way more convenient than working with Linux shell on the HPC. Also, it is not necessaire to manually copy data to the HPC (and vice versa). The structure of this guide is heavily influenced by our own mistakes and we hope to make it somewhat easier for future HPC user.</p>
-<p>In general, our setup should also work with any other HPC and the code snippets should be usable for other scheduling systems than <a href="https://slurm.schedmd.com"><strong>SLURM</strong></a> (which is used by the <em>GWDG</em>) with slight modifications. To see the outdated version of this guide for <strong>LSF</strong>, there is a GitHub branch called <em>LSF</em> in <a href="https://github.com/r-spatialecology/gwdg_hpc_guide">this repo</a>.</p>
+<p>In general, our setup should also work with any other HPC and the code snippets should be usable for other scheduling systems than <a href="https://slurm.schedmd.com"><strong>SLURM</strong></a> (which is used by the <em>GWDG</em>) with slight modifications. To see the outdated version of this guide for <a href="https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_welcome/lsf_welcome.html"><strong>LSF</strong></a>, there is a GitHub branch called <em>LSF</em> in <a href="https://github.com/r-spatialecology/gwdg_hpc_guide">this repo</a>.</p>
 </div>
 <div id="general-setup" class="section level2">
 <h2>General setup</h2>
@@ -149,14 +149,13 @@ code > span.ot { color: #007020; }
 <div id="ssh-key" class="section level3">
 <h3>2. SSH Key</h3>
 <p>For a convenient login and to use <code>R</code> via SSH connector, a SSH key is needed on the HPC (private key on local computer, public key on HPC).</p>
-<p>Using <em>Linux</em> or <em>macOS</em> it is straightforward to generate a SSH key and copy it to the HPC using the shell/terminal.</p>
+<p>Using <em>Linux</em> or <em>macOS</em>, it is straightforward to generate a SSH key and copy it to the HPC using the shell/terminal.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="fu">ssh-keygen</span> -t rsa</a>
 <a class="sourceLine" id="cb1-2" data-line-number="2"><span class="ex">ssh-copy-id</span> gwdg_user@gwdu101.gwdg.de</a></code></pre></div>
-<p>If <code>copy</code> is not installed by default it can be added using the following command (<em>macOS</em>).</p>
+<p>If <code>copy</code> is not installed by default, it can be added using the following command (<em>macOS</em>).</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="ex">brew</span> install ssh-copy-id</a></code></pre></div>
-<p>For <em>Windows</em>, this guide seems to cover how to connect via SSH.</p>
-<p><a href="https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows">https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows</a></p>
-<p>If the SSH key works, it should be possible to login to the HPC frontend without a password.</p>
+<p>For <em>Windows</em>, <a href="https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows">this guide</a> seems to cover how to connect via SSH.</p>
+<p>If the SSH key works, it should be possible to login to the HPC frontend without a password using the following command.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="fu">ssh</span> gwdg_user@gwdu101.gwdg.de</a></code></pre></div>
 </div>
 <div id="create-.profile" class="section level3">
@@ -181,7 +180,7 @@ code > span.ot { color: #007020; }
 </div>
 <div id="create-.bash-files" class="section level3">
 <h3>4. Create .bash-files</h3>
-<p>Now, the <code>.bashrc</code> file is sourced everytime the HPC is accessed. This is convenient because it allows to set default settings, load aliases or modules. To keep everything organized, within <code>.bashrc</code>, again different files are sourced (if they are present). This includes <code>.bash_aliases</code> and <code>.bash_modules</code>.</p>
+<p>Now, the <code>.bashrc</code> file is sourced everytime the HPC is accessed. This is convenient because it allows to set default settings, load aliases or modules. To keep everything organized, within <code>.bashrc</code> again different files are sourced (if they are present). This includes <code>.bash_aliases</code> and <code>.bash_modules</code>.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="fu">nano</span> .bashrc</a></code></pre></div>
 <div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="co"># .bashrc</span></a>
 <a class="sourceLine" id="cb7-2" data-line-number="2"><span class="co"># Source global definitions</span></a>
@@ -207,9 +206,9 @@ code > span.ot { color: #007020; }
 <a class="sourceLine" id="cb8-6" data-line-number="6"><span class="bu">alias</span> jobs_pen=<span class="st">'squeue -u $USER --states=PENDING'</span></a>
 <a class="sourceLine" id="cb8-7" data-line-number="7"><span class="bu">alias</span> jobs_n=<span class="st">'squeue -u $USER --states=RUNNING | wc -l'</span></a>
 <a class="sourceLine" id="cb8-8" data-line-number="8"><span class="bu">alias</span> jobs_kill=<span class="st">'scancel -u $USER'</span></a>
-<a class="sourceLine" id="cb8-9" data-line-number="9"><span class="bu">alias</span> jobs_info=<span class="st">'sacct -u $USER --format=JobID,Partition,QOS,Elapsed,AllocNodes,AveCPU,AveRSS,MaxRSS,NTasks'</span></a>
+<a class="sourceLine" id="cb8-9" data-line-number="9"><span class="bu">alias</span> jobs_info=<span class="st">'sacct -u $USER'</span></a>
 <a class="sourceLine" id="cb8-10" data-line-number="10"><span class="bu">alias</span> monitor=<span class="st">'htop -u $USER'</span></a></code></pre></div>
-<p>To be able to automatically import modules, <code>.bash_modules</code> (again, using <code>nano</code>) needs to be created. Modules provide a way to selectively activate and deactivate modifications to the user environment. This allows particular packages and versions to be found. First, the GNU compiler <code>gcc</code> is loaded. Second, the messaging library <code>zeromq</code> is loaded and used later to submit jobs to the HPC. Additionally, <code>R_GEO</code> allows to load certain spatial packages in <code>R</code> later. Of coures, it’s possible to load any module which is needed (to see all available modules, use <code>module available</code>).</p>
+<p>To be able to automatically import modules, <code>.bash_modules</code> (again, using <code>nano</code>) needs to be created. Modules provide a way to selectively activate and deactivate modifications to the user environment. This allows particular packages and versions to be found. First, the <em>GNU</em> compiler <code>gcc</code> is loaded. Second, the messaging library <code>zeromq</code> is loaded and used later to submit jobs to the HPC. Additionally, <code>R_GEO</code> allows to load certain spatial packages in <code>R</code> later. Of coures, it’s possible to load any module which is needed (to see all available modules, use <code>module available</code>).</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="ex">module</span> load gcc</a>
 <a class="sourceLine" id="cb9-2" data-line-number="2"><span class="ex">module</span> load zeromq</a>
 <a class="sourceLine" id="cb9-3" data-line-number="3"><span class="ex">module</span> load R_GEO</a></code></pre></div>
@@ -228,7 +227,7 @@ code > span.ot { color: #007020; }
 <li><strong>medium</strong> - lots of cores, fewer memory, short pending time (formerly MPI)</li>
 <li><strong>fat</strong> - fewer cores, lots of memory, long pending time</li>
 </ul>
-<p>Both partitions have additional a “quality of service” (QOS), i.e. “normal”, “short” and “long”. This refers to the maximum walltime a job can run on the HPC. Of course this also relates to possible pending times. Generally, a possible pending time migth be longer in the “long” partition. However, once a job is running, it’s also allowed to use the partition longer.</p>
+<p>Both partitions have additional a “quality of service” (QOS), i.e. “normal”, “short” and “long” (formerly appended using “-”). This refers to the maximum walltime a job can run on the HPC. Of course this also relates to possible pending times. Generally, the possible pending time migth be longer in the “long” QOS. However, once a job is running, it’s also allowed to use the partition longer.</p>
 <p>More details can be found here.</p>
 <ul>
 <li><a href="https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs_slurm">RUNNING JOBS WITH SLURM</a></li>
@@ -236,11 +235,11 @@ code > span.ot { color: #007020; }
 </ul>
 <div id="sbatch-command" class="section level3">
 <h3>sbatch command</h3>
-<p>The <strong>SLURM</strong> command <code>sbatch</code> is used to submit jobs to the HPC. However, it’s also possible to use regular <code>R</code> syntax. Nevertheless, to adjust submissions of jobs and understand error messages, it is important to remember that underneath jobs are still submitted by the <code>sbatch</code>, command only with <code>R</code> as proxy.</p>
+<p>The <strong>SLURM</strong> command <code>sbatch</code> is used to submit jobs to the HPC. This is important to remember to adjust submissions of jobs and understand error messages. Regular <code>R</code> syntax is only used as a proxy.</p>
 </div>
 <div id="general-slurm-commands" class="section level3">
 <h3>General <strong>SLURM</strong> commands</h3>
-<p>Here are the previously defined aliases for the most important <strong>SLURM</strong> commands to monitor and control jobs on the HPC. Of course, it is possible to change this list by modifiying <code>.bash_aliases</code>. Also, it’s possible to combine all aliases with the default <strong>SLURM</strong> options.</p>
+<p>Here are the previously defined aliases for the most important <strong>SLURM</strong> commands to monitor and control jobs on the HPC. Of course, it is possible to change this list by modifiying <code>.bash_aliases</code>. Also, it’s possible to combine all aliases with the default <strong>SLURM</strong> options or just use the original <strong>SLURM</strong> commands.</p>
 <ul>
 <li><code>sinfo</code>: General information about all partitions</li>
 <li><code>jobs_p</code>/<code>jobs_med</code>/<code>jobs_fat</code>: All jobs submitted to all/medium/fat partition(s)</li>
@@ -258,7 +257,7 @@ code > span.ot { color: #007020; }
 <div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="ex">module</span> load R</a></code></pre></div>
 <p>It is possible to list all loaded modules. This list should at least contain all modules specified in the <code>.bash_modules</code> file plus all later addtionally loaded modules.</p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb13-1" data-line-number="1"><span class="ex">module</span> list</a></code></pre></div>
-<p>And of course you can also detach selected modules or all modules at once. Disconnecting and reconnecting via ssh also removes all modules. But remember, all modules loaded via the <code>.bash_modules</code> will be loaded automatically.</p>
+<p>Disconnecting and reconnecting via ssh also removes all modules (with exception of those specified in the <code>.bash_modules</code> file). To detach selected modules or all modules at once without logging out, the <code>purge</code> command can be used.</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb14-1" data-line-number="1"><span class="ex">module</span> purge R</a>
 <a class="sourceLine" id="cb14-2" data-line-number="2"><span class="ex">module</span> purge</a></code></pre></div>
 </div>
@@ -266,10 +265,10 @@ code > span.ot { color: #007020; }
 <div id="installing-packages" class="section level2">
 <h2>Installing packages</h2>
 <p>All packages used in a local scripts must also be also installed on the HPC. This must be done for all <code>R</code> versions seperatly, i.e. if <code>R</code> is updated on the HPC, all packages must be re-installed. The easiest way to install packages on the HPC is to login to the frontend and start <code>R</code>.</p>
-<p>Installing <code>R</code> packages works as expected. The only difference to installing packages locally is that <code>R</code> might asks to use the private library of the user, in which the user has writing rights. This is due to the loaded modules.</p>
+<p>Installing <code>R</code> packages works as expected. The only difference to installing packages locally is that <code>R</code> might asks to use the private library of the user (in which the user has writing rights).</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1"><span class="co"># For example</span></a>
 <a class="sourceLine" id="cb15-2" data-line-number="2"><span class="kw">install.packages</span>(<span class="st">&quot;tidyverse&quot;</span>)</a></code></pre></div>
-<p>To install packages from <a href="https://github.com/">GitHub</a> it is necessaire to specify the path to the private library. Therefore, first the <code>devtools</code> and <code>withr</code> packages need to be installed. Now, the path can be provided where the package should be installed. It’s possible to get this path using <code>.libPaths()</code>. Now, this path is wrapped around the <code>install_github()</code> function.</p>
+<p>To install packages from <a href="https://github.com/">GitHub</a> it is necessaire to specify the path to the private library. Therefore, first the <code>devtools</code> and <code>withr</code> packages need to be installed. Now, the path can be provided where the package should be installed. It’s possible to get this path using <code>.libPaths()</code>. This path is wrapped around the <code>install_github()</code> function.</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" data-line-number="1"><span class="kw">install.packages</span>(<span class="st">&quot;devtools&quot;</span>)</a>
 <a class="sourceLine" id="cb16-2" data-line-number="2"><span class="kw">install.packages</span>(<span class="st">&quot;withr&quot;</span>)</a>
 <a class="sourceLine" id="cb16-3" data-line-number="3"></a>
@@ -281,7 +280,7 @@ code > span.ot { color: #007020; }
 </div>
 <div id="using-the-future-package" class="section level2">
 <h2>Using the future package</h2>
-<p>One of the ways to use the <em>GWDG</em> HPC is the <code>future</code> package and framework. The advantage of <code>future</code> is that code can be run on the HPC with only minor changes. Furthermore, specifying how to parallelise the <code>R</code> code is straightforward, as to control how to distribute jobs over nodes and cores. A basic knowledge of <code>future</code> is advised <a href="https://github.com/HenrikBengtsson/future">https://github.com/HenrikBengtsson/future</a>.</p>
+<p>One of the ways to use the <em>GWDG</em> HPC is the <code>future</code> package and framework. The advantage of <code>future</code> is that code can be run on the HPC with only minor changes. Furthermore, specifying how to parallelise the <code>R</code> code is straightforward, as to control how to distribute jobs over nodes and cores. A <a href="https://github.com/HenrikBengtsson/future">basic knowledge</a> of <code>future</code> is advised.</p>
 <div id="create-template-to-submit-jobs" class="section level3">
 <h3>1. Create template to submit jobs</h3>
 <p>A template file is used to control how jobs are submitted to the HPC. This allows to pass arguments as <code>R</code> syntax from the local <code>R</code> session to the <strong>SLURM</strong> system as <code>sbatch</code> commands. The template file, called e.g. <code>future_slurm.tmpl</code>, needs to be created on the HPC (same same <code>nano future_slurm.tmpl</code>). The follwing is an example for such a template file allowing to specify the most important <code>sbatch</code> options.</p>
@@ -360,7 +359,7 @@ code > span.ot { color: #007020; }
 <div id="submitting-jobs-efficiently" class="section level3">
 <h3>4. Submitting jobs efficiently</h3>
 <p>The <code>future</code> plans are crucial, as they specify how to distribute jobs. Therefore, before submitting jobs to the HPC it is important to ensure that the architecture of the plan and how the code is parallelised match. Otherwise, it may be possible to bypass the scheduling system and drain ressources from other users.</p>
-<p>The following code snippet explains how to access specific partitions, set the walltime and design a sequential plan. This setup makes sense if the jobs depend of each other, need a specific chip infrastructure or have memory needs that are only satisfied if you block whole cluster nodes and run them there exclusively.</p>
+<p>The following code snippet explains how to access specific partitions, set the walltime and design a sequential plan. This setup makes sense if the jobs depend of each other, need a specific chip infrastructure or have memory needs that are only satisfied if whole cluster nodes are blocked and jobs are run there exclusively.</p>
 <div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb22-1" data-line-number="1"><span class="co"># login node -&gt; cluster nodes -&gt; core/ multiple cores</span></a>
 <a class="sourceLine" id="cb22-2" data-line-number="2"></a>
 <a class="sourceLine" id="cb22-3" data-line-number="3"><span class="co"># there shouldn't be to much change for the login level of your plan</span></a>
@@ -404,7 +403,7 @@ code > span.ot { color: #007020; }
 <div id="future-folder" class="section level3">
 <h3>5. .future folder</h3>
 <p><code>future.batchtools</code> creates a folder called <code>.future/</code> on the HPC in the home directory. In this folder all submitted jobs are collected and the folder structure indicates the date and time of submission. If all jobs are collected succesfully and retrieved on the local computer, the folder is empty and only contains a <code>.sessioninfo.txt</code>. However, all logs and (partial) results of failed jobs won’t be deleted. This also includes jobs that are killed by the user.</p>
-<p>Note: It’s advisable to remove failed jobs from time to time in the <code>.future/</code> folder. After a while, this folder can use up a lot of the disk quota on the HPC.</p>
+<p><strong>Note</strong>: It’s advisable to remove failed jobs from time to time in the <code>.future/</code> folder. After a while, this folder can use up a lot of the disk quota on the HPC.</p>
 </div>
 <div id="example" class="section level3">
 <h3>6. Example</h3>
@@ -459,7 +458,7 @@ code > span.ot { color: #007020; }
 <div id="using-the-clustermq-package" class="section level2">
 <h2>Using the clustermq package</h2>
 <p><code>clustermq</code> is another package that allows to submit jobs to the HPC via SSH connector. Compared to <code>future</code> (and “friends”), it has the advantage that it submits job arrays. Instead of gradually sending job after job, as done in the examples before, <code>clustermq</code> sends them all at once. This can be a huge time benefit.</p>
-<p>First, make sure the local system has the necessary dependencies installed. To use <code>clustermq</code>, it has to be installed on both the local computer and the HPC.</p>
+<p>First, all necessary dependencies need to be installed on the local system. To use <code>clustermq</code>, it has to be installed on both the local computer and the HPC.</p>
 <div class="sourceCode" id="cb25"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb25-1" data-line-number="1"><span class="co"># You can skip this step on Windows and OS-X, the rzmq binary has it</span></a>
 <a class="sourceLine" id="cb25-2" data-line-number="2"><span class="co"># On a computing cluster, we recommend to use Conda or Linuxbrew</span></a>
 <a class="sourceLine" id="cb25-3" data-line-number="3"><span class="ex">brew</span> install zeromq <span class="co"># Linuxbrew, Homebrew on OS-X</span></a>
@@ -472,82 +471,84 @@ code > span.ot { color: #007020; }
 <a class="sourceLine" id="cb26-3" data-line-number="3"></a>
 <a class="sourceLine" id="cb26-4" data-line-number="4"><span class="co"># HPC</span></a>
 <a class="sourceLine" id="cb26-5" data-line-number="5">withr<span class="op">::</span><span class="kw">with_libpaths</span>(<span class="st">&quot;/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5&quot;</span>, devtools<span class="op">::</span><span class="kw">install_github</span>(<span class="st">'mschubert/clustermq'</span>))</a></code></pre></div>
-<p>Afterwards, the local <code>.Rprofile</code> needs to be modified. This can be done with <code>usethis::edit_r_profile()</code>.</p>
-<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb27-1" data-line-number="1"><span class="kw">options</span>(</a>
-<a class="sourceLine" id="cb27-2" data-line-number="2">    <span class="dt">clustermq.scheduler =</span> <span class="st">&quot;slurm&quot;</span>,</a>
-<a class="sourceLine" id="cb27-3" data-line-number="3">    <span class="dt">clustermq.ssh.host =</span> <span class="st">&quot;username@gwdu101.gwdg.de&quot;</span>, <span class="co"># use your user and host, obviously</span></a>
-<a class="sourceLine" id="cb27-4" data-line-number="4">    <span class="dt">clustermq.ssh.log =</span> <span class="st">&quot;~/cmq_ssh.log&quot;</span> <span class="co"># log for easier debugging</span></a>
-<a class="sourceLine" id="cb27-5" data-line-number="5">)</a></code></pre></div>
-<p>Also the <code>.Rprofile</code> on the HPC (<code>nano .Rprofile</code> in the home directory) needs to be modified.</p>
+<p>Afterwards, the local <code>.Rprofile</code> needs to be modified. This can be done with the <code>usethis</code> package.</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb27-1" data-line-number="1"><span class="kw">edit_r_profile</span>()</a></code></pre></div>
 <div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb28-1" data-line-number="1"><span class="kw">options</span>(</a>
 <a class="sourceLine" id="cb28-2" data-line-number="2">    <span class="dt">clustermq.scheduler =</span> <span class="st">&quot;slurm&quot;</span>,</a>
-<a class="sourceLine" id="cb28-3" data-line-number="3">    <span class="dt">clustermq.template =</span> <span class="st">&quot;/home/uni08/username/clustermq_slurm.tmpl&quot;</span></a>
-<a class="sourceLine" id="cb28-4" data-line-number="4">)</a></code></pre></div>
+<a class="sourceLine" id="cb28-3" data-line-number="3">    <span class="dt">clustermq.ssh.host =</span> <span class="st">&quot;username@gwdu101.gwdg.de&quot;</span>, <span class="co"># use your user and host, obviously</span></a>
+<a class="sourceLine" id="cb28-4" data-line-number="4">    <span class="dt">clustermq.ssh.log =</span> <span class="st">&quot;~/cmq_ssh.log&quot;</span> <span class="co"># log for easier debugging</span></a>
+<a class="sourceLine" id="cb28-5" data-line-number="5">)</a></code></pre></div>
+<p>Also the <code>.Rprofile</code> on the HPC (<code>nano .Rprofile</code> in the home directory) needs to be modified.</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb29-1" data-line-number="1"><span class="kw">options</span>(</a>
+<a class="sourceLine" id="cb29-2" data-line-number="2">    <span class="dt">clustermq.scheduler =</span> <span class="st">&quot;slurm&quot;</span>,</a>
+<a class="sourceLine" id="cb29-3" data-line-number="3">    <span class="dt">clustermq.template =</span> <span class="st">&quot;/home/uni08/username/clustermq_slurm.tmpl&quot;</span></a>
+<a class="sourceLine" id="cb29-4" data-line-number="4">)</a></code></pre></div>
 <p>Then, again an template to submit jobs is needed, e.g. <code>nano clustermq_slurm.tmpl</code>. The template submits jobs to the HPC specifying the options the scheduling system uses.</p>
-<div class="sourceCode" id="cb29"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb29-1" data-line-number="1"><span class="co">#!/bin/sh</span></a>
-<a class="sourceLine" id="cb29-2" data-line-number="2"><span class="co">#SBATCH --job-name={{ job_name }} # job name</span></a>
-<a class="sourceLine" id="cb29-3" data-line-number="3"><span class="co">#SBATCH --partition={{ queue | medium }} # name of queue</span></a>
-<a class="sourceLine" id="cb29-4" data-line-number="4"><span class="co">#SBATCH --qos={{ service | normal }} # which special QOS (short/long)</span></a>
-<a class="sourceLine" id="cb29-5" data-line-number="5"><span class="co">#SBATCH --time={{ walltime | 12:00:00 }} # walltime</span></a>
-<a class="sourceLine" id="cb29-6" data-line-number="6"><span class="co">#SBATCH --array=1-{{ n_jobs }} # number of processes</span></a>
-<a class="sourceLine" id="cb29-7" data-line-number="7"><span class="co">#SBATCH --nodes={{ nodes | 1 }} # if 1 put load on one node</span></a>
-<a class="sourceLine" id="cb29-8" data-line-number="8"><span class="co">#SBATCH --output={{ log_file | /dev/null }}</span></a>
-<a class="sourceLine" id="cb29-9" data-line-number="9"><span class="co">#SBATCH --error={{ log_file | /dev/null }}</span></a>
-<a class="sourceLine" id="cb29-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb29-11" data-line-number="11"><span class="ex">module</span> load gcc</a>
-<a class="sourceLine" id="cb29-12" data-line-number="12"><span class="ex">module</span> load zeromq</a>
-<a class="sourceLine" id="cb29-13" data-line-number="13"><span class="ex">module</span> load R_GEO</a>
-<a class="sourceLine" id="cb29-14" data-line-number="14"></a>
-<a class="sourceLine" id="cb29-15" data-line-number="15"><span class="ex">R</span> --no-save --no-restore -e <span class="st">'clustermq:::worker(&quot;{{ master }}&quot;)'</span></a></code></pre></div>
+<div class="sourceCode" id="cb30"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb30-1" data-line-number="1"><span class="co">#!/bin/sh</span></a>
+<a class="sourceLine" id="cb30-2" data-line-number="2"><span class="co">#SBATCH --job-name={{ job_name }} # job name</span></a>
+<a class="sourceLine" id="cb30-3" data-line-number="3"><span class="co">#SBATCH --partition={{ queue | medium }} # name of queue</span></a>
+<a class="sourceLine" id="cb30-4" data-line-number="4"><span class="co">#SBATCH --qos={{ service | normal }} # which special QOS (short/long)</span></a>
+<a class="sourceLine" id="cb30-5" data-line-number="5"><span class="co">#SBATCH --time={{ walltime | 12:00:00 }} # walltime</span></a>
+<a class="sourceLine" id="cb30-6" data-line-number="6"><span class="co">#SBATCH --array=1-{{ n_jobs }} # number of processes</span></a>
+<a class="sourceLine" id="cb30-7" data-line-number="7"><span class="co">#SBATCH --nodes={{ nodes | 1 }} # if 1 put load on one node</span></a>
+<a class="sourceLine" id="cb30-8" data-line-number="8"><span class="co">#SBATCH --output={{ log_file | /dev/null }}</span></a>
+<a class="sourceLine" id="cb30-9" data-line-number="9"><span class="co">#SBATCH --error={{ log_file | /dev/null }}</span></a>
+<a class="sourceLine" id="cb30-10" data-line-number="10"></a>
+<a class="sourceLine" id="cb30-11" data-line-number="11"><span class="ex">module</span> load gcc</a>
+<a class="sourceLine" id="cb30-12" data-line-number="12"><span class="ex">module</span> load zeromq</a>
+<a class="sourceLine" id="cb30-13" data-line-number="13"><span class="ex">module</span> load R_GEO</a>
+<a class="sourceLine" id="cb30-14" data-line-number="14"></a>
+<a class="sourceLine" id="cb30-15" data-line-number="15"><span class="ex">R</span> --no-save --no-restore -e <span class="st">'clustermq:::worker(&quot;{{ master }}&quot;)'</span></a></code></pre></div>
 <ol style="list-style-type: decimal">
 <li><h3 id="how-to-use-clustermq">How to use clustermq</h3></li>
 </ol>
-<p><code>clustermq</code> does not rely on plans as <code>future</code>. Submitting jobs becomes as easy as providing a function and a list or vector to iterate over. In the example, for each <code>x = 1...3</code> a single job is submitted to the HPC. Contrastingly, <code>y = 10</code> is hold constant for all submitted jobs. In case user-defined functions are needed, these can be specified by the the <code>export</code> argument of the <code>Q()</code> function. It’s also possible to iterate over rows of a data frame.</p>
-<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb30-1" data-line-number="1"><span class="kw">library</span>(clustermq)</a>
-<a class="sourceLine" id="cb30-2" data-line-number="2"></a>
-<a class="sourceLine" id="cb30-3" data-line-number="3">fx =<span class="st"> </span><span class="cf">function</span>(x, y) x <span class="op">*</span><span class="st"> </span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>y</a>
-<a class="sourceLine" id="cb30-4" data-line-number="4"><span class="kw">Q</span>(fx, <span class="dt">x =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">3</span>, <span class="dt">const =</span> <span class="kw">list</span>(<span class="dt">y =</span> <span class="dv">10</span>), <span class="dt">n_jobs =</span> <span class="dv">1</span>)</a></code></pre></div>
-<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb31-1" data-line-number="1"><span class="co"># Run a simple multiplication for data frame columns x and y on a worker node</span></a>
-<a class="sourceLine" id="cb31-2" data-line-number="2">fx =<span class="st"> </span><span class="cf">function</span> (x, y) x <span class="op">*</span><span class="st"> </span>y</a>
-<a class="sourceLine" id="cb31-3" data-line-number="3"></a>
-<a class="sourceLine" id="cb31-4" data-line-number="4">df =<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">x =</span> <span class="dv">5</span>, <span class="dt">y =</span> <span class="dv">10</span>)</a>
-<a class="sourceLine" id="cb31-5" data-line-number="5"></a>
-<a class="sourceLine" id="cb31-6" data-line-number="6"><span class="kw">Q_rows</span>(df, fx, <span class="dt">job_size =</span> <span class="dv">1</span>)</a>
-<a class="sourceLine" id="cb31-7" data-line-number="7"></a>
-<a class="sourceLine" id="cb31-8" data-line-number="8"><span class="co"># Q_rows also matches the names of a data frame with the function arguments</span></a>
-<a class="sourceLine" id="cb31-9" data-line-number="9">fx =<span class="st"> </span><span class="cf">function</span> (x, y) x <span class="op">-</span><span class="st"> </span>y</a>
-<a class="sourceLine" id="cb31-10" data-line-number="10"></a>
-<a class="sourceLine" id="cb31-11" data-line-number="11">df =<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">y =</span> <span class="dv">5</span>, <span class="dt">x =</span> <span class="dv">10</span>)</a>
-<a class="sourceLine" id="cb31-12" data-line-number="12"></a>
-<a class="sourceLine" id="cb31-13" data-line-number="13"><span class="kw">Q_rows</span>(df, fx, <span class="dt">job_size =</span> <span class="dv">1</span>)</a></code></pre></div>
-<p>All parameters within <code>{{ }}</code> in the template file can be specified using a list and the <code>template</code> argument of the <code>Q()</code> function. Therefore, it is very easy to e.g. submit to the short QOS and set the walltime to 5 minutes (<hh:mm:ss>). Of course, additional arguments can be added to the template.</p>
-<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb32-1" data-line-number="1"><span class="kw">Q</span>(fx, <span class="dt">x =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">3</span>, <span class="dt">const =</span> <span class="kw">list</span>(<span class="dt">y =</span> <span class="dv">10</span>), <span class="dt">n_jobs =</span> <span class="dv">3</span>, </a>
-<a class="sourceLine" id="cb32-2" data-line-number="2">  <span class="dt">template =</span> <span class="kw">list</span>(<span class="dt">walltime =</span> <span class="st">&quot;00:05:00&quot;</span>, </a>
-<a class="sourceLine" id="cb32-3" data-line-number="3">                  <span class="dt">service =</span> <span class="st">&quot;short&quot;</span>))</a></code></pre></div>
+<p><code>clustermq</code> does not rely on plans as <code>future</code>. Submitting jobs becomes as easy as providing a function and a list or vector to iterate over. In the example, for each <code>x = 1...5</code> a single job is submitted to the HPC. Contrastingly, <code>y = 10</code> is hold constant for all submitted jobs. In case user-defined functions are needed, these can be specified by the the <code>export</code> argument of the <code>Q()</code> function. It’s also possible to iterate over rows of a data frame.</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb31-1" data-line-number="1"><span class="kw">library</span>(clustermq)</a>
+<a class="sourceLine" id="cb31-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb31-3" data-line-number="3">fx =<span class="st"> </span><span class="cf">function</span>(x, y) x <span class="op">*</span><span class="st"> </span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>y</a>
+<a class="sourceLine" id="cb31-4" data-line-number="4"><span class="kw">Q</span>(fx, <span class="dt">x =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">5</span>, <span class="dt">const =</span> <span class="kw">list</span>(<span class="dt">y =</span> <span class="dv">10</span>), <span class="dt">n_jobs =</span> <span class="dv">1</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb32-1" data-line-number="1"><span class="co"># Run a simple multiplication for data frame columns x and y on a worker node</span></a>
+<a class="sourceLine" id="cb32-2" data-line-number="2">fx =<span class="st"> </span><span class="cf">function</span> (x, y) x <span class="op">*</span><span class="st"> </span>y</a>
+<a class="sourceLine" id="cb32-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb32-4" data-line-number="4">df =<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">x =</span> <span class="dv">5</span>, <span class="dt">y =</span> <span class="dv">10</span>)</a>
+<a class="sourceLine" id="cb32-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb32-6" data-line-number="6"><span class="kw">Q_rows</span>(df, fx, <span class="dt">job_size =</span> <span class="dv">1</span>)</a>
+<a class="sourceLine" id="cb32-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb32-8" data-line-number="8"><span class="co"># Q_rows also matches the names of a data frame with the function arguments</span></a>
+<a class="sourceLine" id="cb32-9" data-line-number="9">fx =<span class="st"> </span><span class="cf">function</span> (x, y) x <span class="op">-</span><span class="st"> </span>y</a>
+<a class="sourceLine" id="cb32-10" data-line-number="10"></a>
+<a class="sourceLine" id="cb32-11" data-line-number="11">df =<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">y =</span> <span class="dv">5</span>, <span class="dt">x =</span> <span class="dv">10</span>)</a>
+<a class="sourceLine" id="cb32-12" data-line-number="12"></a>
+<a class="sourceLine" id="cb32-13" data-line-number="13"><span class="kw">Q_rows</span>(df, fx, <span class="dt">job_size =</span> <span class="dv">1</span>)</a></code></pre></div>
+<p>All parameters within <code>{{ }}</code> in the template file can be specified using a list and the <code>template</code> argument of the <code>Q()</code> function. Therefore, it is very easy to e.g. submit to the short <em>QOS</em> and set the walltime to 5 minutes (<hh:mm:ss>). Of course, additional arguments can be added to the template.</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb33-1" data-line-number="1"><span class="kw">Q</span>(fx, <span class="dt">x =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">3</span>, <span class="dt">const =</span> <span class="kw">list</span>(<span class="dt">y =</span> <span class="dv">10</span>), <span class="dt">n_jobs =</span> <span class="dv">3</span>, </a>
+<a class="sourceLine" id="cb33-2" data-line-number="2">  <span class="dt">template =</span> <span class="kw">list</span>(<span class="dt">walltime =</span> <span class="st">&quot;00:05:00&quot;</span>, </a>
+<a class="sourceLine" id="cb33-3" data-line-number="3">                  <span class="dt">service =</span> <span class="st">&quot;short&quot;</span>))</a></code></pre></div>
 </div>
 <div id="tips-and-tricks" class="section level2">
 <h2>Tips and Tricks</h2>
 <div id="kill-jobsr-sessions" class="section level3">
 <h3>1.Kill jobs/R sessions</h3>
 <p>There is an alias to kill already submitted jobs. In case something goes wrong while submitting jobs, there will be most likely several <code>R</code> sessions that do not close by themselfes or are open and keep submitting jobs. A convienent way to kill these processes is to login to the HPC frontend and use the defined alias <code>monitor</code> to enter the process manger <code>htop</code>. With <code>F9</code> it’s possible to select the <code>R</code> processes and kill them. <code>F10</code> closes the process manager afterwards.</p>
-<div class="sourceCode" id="cb33"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb33-1" data-line-number="1"><span class="ex">jobs_kill</span></a>
-<a class="sourceLine" id="cb33-2" data-line-number="2"><span class="ex">monitor</span></a></code></pre></div>
+<div class="sourceCode" id="cb34"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb34-1" data-line-number="1"><span class="ex">jobs_kill</span></a>
+<a class="sourceLine" id="cb34-2" data-line-number="2"><span class="ex">monitor</span></a></code></pre></div>
 </div>
 <div id="better-connection-to-the-hpc" class="section level3">
 <h3>2. Better connection to the HPC</h3>
-<p>One inconvience is that the connection to HPC from a local <code>R</code> session can not be interrupted. If that happens, jobs are lost (using <code>future</code> there might be chance to collect every result in the <code>.future</code> folder). This also means that runningcode from a local computer means that it has to be running until everything is finished. When code take several days, this can easily become a problem.</p>
+<p>One inconvience is that the connection to HPC from a local <code>R</code> session can not be interrupted. If that happens, jobs are lost (using <code>future</code> there might be chance to collect every result in the <code>.future</code> folder). This also means that running code from a local computer means that it has to be running until everything is finished. When code take several days, this can easily become a problem.</p>
 <p>A way we explored for such cases is to use the <a href="https://www.gwdg.de/de/server-services/gwdg-cloud-server">GWDG Cloud Server</a>. If you install there an instance of RStudio Server, you have a cloud based IDE that you can run from everywhere with access to the internet. By default, the RStudio Server unfortunately breaks the connection every now and then, so you have to tweak it a bit to be permanently accessible. To turn off the suspended session feature, must be specified in a <code>ression.conf</code> file. After the line <code>session-timeout-minutes=0</code> is added to the file, the server must be restarted.</p>
-<div class="sourceCode" id="cb34"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb34-1" data-line-number="1"><span class="bu">cd</span> /etc/rstudion</a>
-<a class="sourceLine" id="cb34-2" data-line-number="2"><span class="fu">nano</span> rsession.conf <span class="co"># add line session-timeout-minutes=0</span></a>
-<a class="sourceLine" id="cb34-3" data-line-number="3"><span class="fu">sudo</span> rstudio-server restart</a></code></pre></div>
-<p>Also the SSH connection becomes a bit tricky from the server. After the SSH pairs were added to the server and the HPC, it is first required to login to a <em>GWDG</em> login terminal and from there to the HPC frontend. If this works, it is possible to aut</p>
-<div class="sourceCode" id="cb35"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb35-1" data-line-number="1"><span class="fu">ssh</span> username@login.gwdg.de</a>
-<a class="sourceLine" id="cb35-2" data-line-number="2"><span class="fu">ssh</span> username@gwdu101.gwdg.de</a></code></pre></div>
+<div class="sourceCode" id="cb35"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb35-1" data-line-number="1"><span class="bu">cd</span> /etc/rstudion</a>
+<a class="sourceLine" id="cb35-2" data-line-number="2"><span class="fu">nano</span> rsession.conf <span class="co"># add line session-timeout-minutes=0</span></a></code></pre></div>
+<div class="sourceCode" id="cb36"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb36-1" data-line-number="1"><span class="ex">session-timeout-minutes</span>=0</a></code></pre></div>
+<div class="sourceCode" id="cb37"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb37-1" data-line-number="1"><span class="fu">sudo</span> rstudio-server restart</a></code></pre></div>
+<p>Also the SSH connection becomes a bit tricky from the server. After the SSH pairs were added to the server and the HPC, it is first required to login to a <em>GWDG</em> login terminal and from there to the HPC frontend.</p>
+<div class="sourceCode" id="cb38"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb38-1" data-line-number="1"><span class="fu">ssh</span> username@login.gwdg.de</a>
+<a class="sourceLine" id="cb38-2" data-line-number="2"><span class="fu">ssh</span> username@gwdu101.gwdg.de</a></code></pre></div>
 <p>If this works, automate the two steps adding a <code>config</code> file (<code>nano config</code>) in the <code>.ssh/</code> folder on the HPC.</p>
-<div class="sourceCode" id="cb36"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb36-1" data-line-number="1"><span class="ex">Host</span> gwdu101.gwdg.de</a>
-<a class="sourceLine" id="cb36-2" data-line-number="2">  <span class="ex">ProxyCommand</span> ssh username@login.gwdg.de -W %h:%p</a>
-<a class="sourceLine" id="cb36-3" data-line-number="3">  <span class="ex">StrictHostKeyChecking</span> no</a>
-<a class="sourceLine" id="cb36-4" data-line-number="4">  <span class="ex">ServerAliveInterval</span> 30</a></code></pre></div>
+<div class="sourceCode" id="cb39"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb39-1" data-line-number="1"><span class="ex">Host</span> gwdu101.gwdg.de</a>
+<a class="sourceLine" id="cb39-2" data-line-number="2">  <span class="ex">ProxyCommand</span> ssh username@login.gwdg.de -W %h:%p</a>
+<a class="sourceLine" id="cb39-3" data-line-number="3">  <span class="ex">StrictHostKeyChecking</span> no</a>
+<a class="sourceLine" id="cb39-4" data-line-number="4">  <span class="ex">ServerAliveInterval</span> 30</a></code></pre></div>
 <p>In case you use another RStudio Server, the only thing you would have to change from the things we explained here is to open a VPN connection to the <em>goenet</em>.</p>
 </div>
 </div>

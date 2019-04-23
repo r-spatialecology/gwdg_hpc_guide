@@ -21,7 +21,7 @@ knitr::opts_chunk$set(echo = TRUE)
 The aim of this guide is to explain how to use a local `R` session and submit jobs to the [*GWDG* High Performance Cluster](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:start) (HPC) and retrieve the results in the same `R` session (requires *GWDG* account). The big advantage of this is that working locally in an IDE (e.g. [RStudio](https://www.rstudio.com)) is way more convenient than working with Linux shell on the HPC. Also, it is not necessaire
 to manually copy data to the HPC (and vice versa). The structure of this guide is heavily influenced by our own mistakes and we hope to make it somewhat easier for future HPC user.
 
-In general, our setup should also work with any other HPC and the code snippets should be usable for other scheduling systems than [**SLURM**](https://slurm.schedmd.com) (which is used by the *GWDG*) with slight modifications. To see the outdated version of this guide for **LSF**, there is a GitHub branch called *LSF* in [this repo](https://github.com/r-spatialecology/gwdg_hpc_guide).
+In general, our setup should also work with any other HPC and the code snippets should be usable for other scheduling systems than [**SLURM**](https://slurm.schedmd.com) (which is used by the *GWDG*) with slight modifications. To see the outdated version of this guide for [**LSF**](https://www.ibm.com/support/knowledgecenter/en/SSWRJV_10.1.0/lsf_welcome/lsf_welcome.html), there is a GitHub branch called *LSF* in [this repo](https://github.com/r-spatialecology/gwdg_hpc_guide).
 
 ## General setup
 
@@ -34,24 +34,22 @@ The Linux shell must be set to `/bin/ksh` (and not `/bin/sh`). It's possible to 
 ### 2. SSH Key
 For a convenient login and to use `R` via SSH connector, a SSH key is needed on the HPC (private key on local computer, public key on HPC).
 
-Using *Linux* or *macOS* it is straightforward to generate a SSH key and copy it to the HPC using the shell/terminal.
+Using *Linux* or *macOS*, it is straightforward to generate a SSH key and copy it to the HPC using the shell/terminal.
 
 ```{bash eval = FALSE}
 ssh-keygen -t rsa
 ssh-copy-id gwdg_user@gwdu101.gwdg.de
 ```
 
-If `copy` is not installed by default it can be added using the following command (*macOS*).
+If `copy` is not installed by default, it can be added using the following command (*macOS*).
 
 ```{bash eval = FALSE}
 brew install ssh-copy-id
 ```
 
-For *Windows*, this guide seems to cover how to connect via SSH.
+For *Windows*, [this guide](https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows) seems to cover how to connect via SSH.
 
-[https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows](https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows)
-
-If the SSH key works, it should be possible to login to the HPC frontend without a password.
+If the SSH key works, it should be possible to login to the HPC frontend without a password using the following command.
 
 ```{bash eval = FALSE}
 ssh gwdg_user@gwdu101.gwdg.de
@@ -85,7 +83,7 @@ esac
 
 ### 4. Create .bash-files
 
-Now, the `.bashrc` file is sourced everytime the HPC is accessed. This is convenient because it allows to set default settings, load aliases or modules. To keep everything organized, within `.bashrc`, again different files are sourced (if they are present). This includes `.bash_aliases` and `.bash_modules`.
+Now, the `.bashrc` file is sourced everytime the HPC is accessed. This is convenient because it allows to set default settings, load aliases or modules. To keep everything organized, within `.bashrc` again different files are sourced (if they are present). This includes `.bash_aliases` and `.bash_modules`.
 
 ```{bash eval = FALSE}
 nano .bashrc
@@ -120,11 +118,11 @@ alias jobs_run='squeue -u $USER --states=RUNNING'
 alias jobs_pen='squeue -u $USER --states=PENDING'
 alias jobs_n='squeue -u $USER --states=RUNNING | wc -l'
 alias jobs_kill='scancel -u $USER'
-alias jobs_info='sacct -u $USER --format=JobID,Partition,QOS,Elapsed,AllocNodes,AveCPU,AveRSS,MaxRSS,NTasks'
+alias jobs_info='sacct -u $USER'
 alias monitor='htop -u $USER'
 ```
 
-To be able to automatically import modules, `.bash_modules` (again, using `nano`) needs to be created. Modules provide a way to selectively activate and deactivate modifications to the user environment. This allows particular packages and versions to be found. First, the GNU compiler `gcc` is loaded. Second, the  messaging library `zeromq` is loaded and used later to submit jobs to the HPC. Additionally, `R_GEO` allows to load certain spatial packages in `R` later. Of coures, it's possible to load any module which is needed (to see all available modules, use `module available`).
+To be able to automatically import modules, `.bash_modules` (again, using `nano`) needs to be created. Modules provide a way to selectively activate and deactivate modifications to the user environment. This allows particular packages and versions to be found. First, the *GNU* compiler `gcc` is loaded. Second, the  messaging library `zeromq` is loaded and used later to submit jobs to the HPC. Additionally, `R_GEO` allows to load certain spatial packages in `R` later. Of coures, it's possible to load any module which is needed (to see all available modules, use `module available`).
 
 ```{bash eval = FALSE}
 module load gcc
@@ -148,7 +146,7 @@ The HPC infrastructure is mostly accessible through partitions (formerly queues)
 * **medium** - lots of cores, fewer memory, short pending time (formerly MPI)
 * **fat** - fewer cores, lots of memory, long pending time
 
-Both partitions have additional a "quality of service" (QOS), i.e. "normal", "short" and "long". This refers to the maximum walltime a job can run on the HPC. Of course this also relates to possible pending times. Generally, a possible pending time migth be longer in the "long" partition. However, once a job is running, it's also allowed to use the partition longer.
+Both partitions have additional a "quality of service" (QOS), i.e. "normal", "short" and "long" (formerly appended using "-"). This refers to the maximum walltime a job can run on the HPC. Of course this also relates to possible pending times. Generally, the possible pending time migth be longer in the "long" QOS. However, once a job is running, it's also allowed to use the partition longer.
 
 More details can be found here.
 
@@ -157,11 +155,11 @@ More details can be found here.
 
 ### sbatch command
 
-The **SLURM** command `sbatch` is used to submit jobs to the HPC. However, it's also possible to use regular `R` syntax. Nevertheless, to adjust submissions of jobs and understand error messages, it is important to remember that underneath jobs are still submitted by the `sbatch`, command only with `R` as proxy.
+The **SLURM** command `sbatch` is used to submit jobs to the HPC. This is important to remember to adjust submissions of jobs and understand error messages. Regular `R` syntax is only used as a proxy.
 
 ### General **SLURM** commands
 
-Here are the previously defined aliases for the most important **SLURM** commands to monitor and control jobs on the HPC. Of course, it is possible to change this list by modifiying `.bash_aliases`. Also, it's possible to combine all aliases with the default **SLURM** options.
+Here are the previously defined aliases for the most important **SLURM** commands to monitor and control jobs on the HPC. Of course, it is possible to change this list by modifiying `.bash_aliases`. Also, it's possible to combine all aliases with the default **SLURM** options or just use the original **SLURM** commands.
 
 * `sinfo`: General information about all partitions
 * `jobs_p`/`jobs_med`/`jobs_fat`: All jobs submitted to all/medium/fat partition(s)
@@ -190,7 +188,7 @@ It is possible to list all loaded modules. This list should at least contain all
 module list
 ```
 
-And of course you can also detach selected modules or all modules at once. Disconnecting and reconnecting via ssh also removes all modules. But remember, all modules loaded via the `.bash_modules` will be loaded automatically.
+Disconnecting and reconnecting via ssh also removes all modules (with exception of those specified in the `.bash_modules` file). To detach selected modules or all modules at once without logging out, the `purge` command can be used.
 
 ```{bash eval = FALSE}
 module purge R
@@ -201,14 +199,14 @@ module purge
 
 All packages used in a local scripts must also be also installed on the HPC. This must be done for all `R` versions seperatly, i.e. if `R` is updated on the HPC, all packages must be re-installed. The easiest way to install packages on the HPC is to login to the frontend and start `R`.
 
-Installing `R` packages works as expected. The only difference to installing packages locally is that `R` might asks to use the private library of the user, in which the user has writing rights. This is due to the loaded modules.
+Installing `R` packages works as expected. The only difference to installing packages locally is that `R` might asks to use the private library of the user (in which the user has writing rights).
 
 ```{r eval = FALSE}
 # For example
 install.packages("tidyverse")
 ```
 
-To install packages from [GitHub](https://github.com/) it is necessaire to specify the path to the private library. Therefore, first the `devtools` and `withr` packages need to be installed. Now, the path can be provided where the package should be installed. It's possible to get this path using `.libPaths()`. Now, this path is wrapped around the `install_github()` function.
+To install packages from [GitHub](https://github.com/) it is necessaire to specify the path to the private library. Therefore, first the `devtools` and `withr` packages need to be installed. Now, the path can be provided where the package should be installed. It's possible to get this path using `.libPaths()`. This path is wrapped around the `install_github()` function.
 
 ```{r eval = FALSE}
 install.packages("devtools")
@@ -223,7 +221,7 @@ withr::with_libpaths(new = "/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-lib
 
 ## Using the future package
 
-One of the ways to use the *GWDG* HPC is the `future` package and framework. The advantage of `future` is that code can be run on the HPC with only minor changes. Furthermore, specifying how  to parallelise the `R` code is straightforward, as to control how to distribute jobs over nodes and cores. A basic knowledge of `future` is advised [https://github.com/HenrikBengtsson/future](https://github.com/HenrikBengtsson/future).
+One of the ways to use the *GWDG* HPC is the `future` package and framework. The advantage of `future` is that code can be run on the HPC with only minor changes. Furthermore, specifying how  to parallelise the `R` code is straightforward, as to control how to distribute jobs over nodes and cores. A [basic knowledge](https://github.com/HenrikBengtsson/future) of `future` is advised.
 
 ### 1. Create template to submit jobs
 
@@ -323,7 +321,7 @@ hpc_sysinfo_on_node_cores  %<-%  future_map(seq_len(10), function(x){
 
 The `future` plans are crucial, as they specify how to distribute jobs. Therefore, before submitting jobs to the HPC it is important to ensure that the architecture of the plan and how the code is parallelised match. Otherwise, it may be possible to bypass the scheduling system and drain ressources from other users.
 
-The following code snippet explains how to access specific partitions, set the walltime and design a sequential plan. This setup makes sense if the jobs depend of each other, need a specific chip infrastructure or have memory needs that are only satisfied if you block whole cluster nodes and run them there exclusively.
+The following code snippet explains how to access specific partitions, set the walltime and design a sequential plan. This setup makes sense if the jobs depend of each other, need a specific chip infrastructure or have memory needs that are only satisfied if whole cluster nodes are blocked and jobs are run there exclusively.
 
 ```{r eval = FALSE}
 # login node -> cluster nodes -> core/ multiple cores
@@ -375,7 +373,7 @@ plan(list(
 
 `future.batchtools` creates a folder called `.future/` on the HPC in the home directory. In this folder all submitted jobs are collected and the folder structure indicates the date and time of submission. If all jobs are collected succesfully and retrieved on the local computer, the folder is empty and only contains a `.sessioninfo.txt`. However, all logs and (partial) results of failed jobs won't be deleted. This also includes jobs that are killed by the user. 
 
-Note: It's advisable to remove failed jobs from time to time in the `.future/` folder. After a while, this folder can use up a lot of the disk quota on the HPC.
+**Note**: It's advisable to remove failed jobs from time to time in the `.future/` folder. After a while, this folder can use up a lot of the disk quota on the HPC.
 
 ### 6. Example
 
@@ -432,7 +430,7 @@ fancy_statistical_model <- future_map_dfr(advanced_data, function(x) {
 
 `clustermq` is another package that allows to submit jobs to the HPC via SSH connector. Compared to `future` (and "friends"), it has the advantage that it submits job arrays. Instead of gradually sending job after job, as done in the examples before, `clustermq` sends them all at once. This can be a huge time benefit.
 
-First, make sure the local system has the necessary dependencies installed. To use `clustermq`, it has to be installed on both the local computer and the HPC.
+First, all necessary dependencies need to be installed on the local system. To use `clustermq`, it has to be installed on both the local computer and the HPC.
 
 ```{bash eval=FALSE}
 # You can skip this step on Windows and OS-X, the rzmq binary has it
@@ -452,7 +450,11 @@ devtools::install_github('mschubert/clustermq')
 withr::with_libpaths("/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5", devtools::install_github('mschubert/clustermq'))
 ```
 
-Afterwards, the local `.Rprofile` needs to be modified. This can be done with `usethis::edit_r_profile()`.
+Afterwards, the local `.Rprofile` needs to be modified. This can be done with the `usethis` package.
+
+```{r eval=FALSE}
+edit_r_profile()
+```
 
 ```{r eval=FALSE}
 options(
@@ -493,13 +495,13 @@ R --no-save --no-restore -e 'clustermq:::worker("{{ master }}")'
 
 1. ### How to use clustermq
 
-`clustermq` does not rely on plans as `future`. Submitting jobs becomes as easy as providing a function and a list or vector to iterate over. In the example, for each `x = 1...3` a single job is submitted to the HPC. Contrastingly, `y = 10` is hold constant for all submitted jobs. In case user-defined functions are needed, these can be specified by the the `export` argument of the `Q()` function. It's also possible to iterate over rows of a data frame.
+`clustermq` does not rely on plans as `future`. Submitting jobs becomes as easy as providing a function and a list or vector to iterate over. In the example, for each `x = 1...5` a single job is submitted to the HPC. Contrastingly, `y = 10` is hold constant for all submitted jobs. In case user-defined functions are needed, these can be specified by the the `export` argument of the `Q()` function. It's also possible to iterate over rows of a data frame.
 
 ```{r eval=FALSE}
 library(clustermq)
 
 fx = function(x, y) x * 2 + y
-Q(fx, x = 1:3, const = list(y = 10), n_jobs = 1)
+Q(fx, x = 1:5, const = list(y = 10), n_jobs = 1)
 ```
 
 ```{r eval=FALSE}
@@ -518,7 +520,7 @@ df = data.frame(y = 5, x = 10)
 Q_rows(df, fx, job_size = 1)
 ```
 
-All parameters within ``{{ }}`` in the template file can be specified using a list and the `template` argument of the `Q()` function. Therefore, it is very easy to e.g. submit to the short QOS and set the walltime to 5 minutes (<hh:mm:ss>). Of course, additional arguments can be added to the template.
+All parameters within ``{{ }}`` in the template file can be specified using a list and the `template` argument of the `Q()` function. Therefore, it is very easy to e.g. submit to the short *QOS* and set the walltime to 5 minutes (<hh:mm:ss>). Of course, additional arguments can be added to the template.
 
 ```{r eval=FALSE}
 Q(fx, x = 1:3, const = list(y = 10), n_jobs = 3, 
@@ -539,17 +541,24 @@ monitor
 
 ### 2. Better connection to the HPC
 
-One inconvience is that the connection to HPC from a local `R` session can not be interrupted. If that happens, jobs are lost (using `future` there might be chance to collect every result in the `.future` folder). This also means that runningcode from a local computer means that it has to be running until everything is finished. When code take several days, this can easily become a problem.
+One inconvience is that the connection to HPC from a local `R` session can not be interrupted. If that happens, jobs are lost (using `future` there might be chance to collect every result in the `.future` folder). This also means that running code from a local computer means that it has to be running until everything is finished. When code take several days, this can easily become a problem.
 
 A way we explored for such cases is to use the [GWDG Cloud Server](https://www.gwdg.de/de/server-services/gwdg-cloud-server). If you install there an instance of RStudio Server, you have a cloud based IDE that you can run from everywhere with access to the internet. By default, the RStudio Server unfortunately breaks the connection every now and then, so you have to tweak it a bit to be permanently accessible. To turn off the suspended session feature, must be specified in a `ression.conf` file. After the line `session-timeout-minutes=0` is added to the file, the server must be restarted.
 
 ```{bash eval = FALSE}
 cd /etc/rstudion
 nano rsession.conf # add line session-timeout-minutes=0
+```
+
+```{bash eval = FALSE}
+session-timeout-minutes=0
+```
+
+```{bash eval = FALSE}
 sudo rstudio-server restart
 ```
 
-Also the SSH connection becomes a bit tricky from the server. After the SSH pairs were added to the server and the HPC, it is first required to login to a *GWDG* login terminal and from there to the HPC frontend. If this works, it is possible to aut
+Also the SSH connection becomes a bit tricky from the server. After the SSH pairs were added to the server and the HPC, it is first required to login to a *GWDG* login terminal and from there to the HPC frontend.
 
 ```{bash, eval = FALSE}
 ssh username@login.gwdg.de
