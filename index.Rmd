@@ -458,7 +458,7 @@ edit_r_profile()
 
 ```{r eval=FALSE}
 options(
-    clustermq.scheduler = "slurm",
+    clustermq.scheduler = "ssh",
     clustermq.ssh.host = "username@gwdu101.gwdg.de", # use your user and host, obviously
     clustermq.ssh.log = "~/cmq_ssh.log" # log for easier debugging
 )
