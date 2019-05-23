@@ -264,14 +264,14 @@ library("furrr")
 
 # now we specify a future topology that fits our HPC
 # login node -> cluster nodes -> core/ multiple cores
-login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'user_name_gwdg') # user = login credential
+login <- tweak(remote, workers = "gwdu101.gwdg.de", user = "user_name_gwdg") # user = login credential
 
-sbatch <- tweak(batchtools_slurm, template = 'future_slurm.tmpl',
-                resources = list(job.name = 'run_hpc',     # name of the job
-                                 log.file = 'run_hpc.log', # name of log file
-                                 queue = 'medium', # which partition
-                                 service = "short" # which QOS
-                                 walltime = '00:05:00', # walltime <hh:mm:ss>
+sbatch <- tweak(batchtools_slurm, template = "future_slurm.tmpl",
+                resources = list(job.name = "run_hpc",     # name of the job
+                                 log.file = "run_hpc.log", # name of log file
+                                 queue = "medium", # which partition
+                                 service = "short", # which QOS
+                                 walltime = "00:05:00", # walltime <hh:mm:ss>
                                  processes = 12)) # number of cores
 
 plan(list(
@@ -328,19 +328,19 @@ The following code snippet explains how to access specific partitions, set the w
 
 # there shouldn't be to much change for the login level of your plan
 # you specify the address of the hpc and your user name
-login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'user_name_gwdg')
+login <- tweak(remote, workers = "gwdu101.gwdg.de", user = "user_name_gwdg")
 
 # the sbatch, or cluster node, level becomes the first stage
 # where you could make adjustment to control you experiment.
 # This tweak fills out the space between the curly brackets
 # in the future_slurm.tmpl file we created on the HPC.
 # (scroll to the right to read an explanation of every line)
-sbatch <- tweak(batchtools_slurm, template = 'future_slurm.tmpl',
-                resources = list(job.name = 'run_hpc',     # name of the job
-                                 log.file = 'run_hpc.log', # name of log file
-                                 queue = 'medium', # which partition
-                                 service = "short" # which QOS
-                                 walltime = '00:05:00', # walltime <hh:mm:ss>
+sbatch <- tweak(batchtools_slurm, template = "future_slurm.tmpl",
+                resources = list(job.name = "run_hpc",     # name of the job
+                                 log.file = "run_hpc.log", # name of log file
+                                 queue = "medium", # which partition
+                                 service = "short", # which QOS
+                                 walltime = "00:05:00", # walltime <hh:mm:ss>
                                  processes = 12)) # number of cores
 
 plan(list(
@@ -354,12 +354,12 @@ However, if jobs are independent of each other (e.g. repetitions of the same fun
 
 ```{r eval = FALSE}
 # (scroll to the right to read an explanation of every line)
-sbatch <- tweak(batchtools_slurm, template = 'future_slurm.tmpl',
-                resources = list(job.name = 'run_hpc',     # name of the job
-                                 log.file = 'run_hpc.log', # name of log file
-                                 queue = 'medium', # which partition
-                                 service = "short" # which QOS
-                                 walltime = '00:05:00', # walltime <hh:mm:ss>
+sbatch <- tweak(batchtools_slurm, template = "future_slurm.tmpl",
+                resources = list(job.name = "run_hpc",     # name of the job
+                                 log.file = "run_hpc.log", # name of log file
+                                 queue = "medium", # which partition
+                                 service = "short", # which QOS
+                                 walltime = "00:05:00", # walltime <hh:mm:ss>
                                  processes = 1)) # number of cores
 
 plan(list(
@@ -390,7 +390,7 @@ library("furrr")
 library("tidyverse")
 
 # login node -> cluster nodes -> core/ multiple cores
-login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'username')
+login <- tweak(remote, workers = "gwdu101.gwdg.de", user = "username")
 
 # We submit to the multipurpose queue with a maximum
 # walltime of 48 hours (we specify 15 so that we
@@ -400,12 +400,12 @@ login <- tweak(remote, workers = "gwdu101.gwdg.de", user = 'username')
 # exclusively (the maximum number of cores on
 # mpi nodes is 24, which means if we say 24
 # here we wait until a node is not used by anyone).
-sbatch <- tweak(batchtools_slurm, template = 'future_slurm.tmpl',
-                resources = list(job.name = 'run_hpc',     # name of the job
-                                 log.file = 'run_hpc.log', # name of log file
-                                 queue = 'medium', # which partition
-                                 service = "normal" # which QOS
-                                 walltime = '00:15:00', # walltime <hh:mm:ss>
+sbatch <- tweak(batchtools_slurm, template = "future_slurm.tmpl",
+                resources = list(job.name = "run_hpc",     # name of the job
+                                 log.file = "run_hpc.log", # name of log file
+                                 queue = "medium", # which partition
+                                 service = "normal", # which QOS
+                                 walltime = "00:15:00", # walltime <hh:mm:ss>
                                  processes = 12)) # number of cores
 
 plan(list(
@@ -444,10 +444,10 @@ pacman -S zeromq # Archlinux
 
 ```{r eval=FALSE}
 # local pc
-devtools::install_github('mschubert/clustermq')
+devtools::install_github("mschubert/clustermq")
 
 # HPC
-withr::with_libpaths("/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5", devtools::install_github('mschubert/clustermq'))
+withr::with_libpaths("/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5", devtools::install_github("mschubert/clustermq"))
 ```
 
 Afterwards, the local `.Rprofile` needs to be modified. This can be done with the `usethis` package.
