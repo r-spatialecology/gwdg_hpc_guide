@@ -315,14 +315,14 @@ code > span.ot { color: #007020; }
 <a class="sourceLine" id="cb18-5" title="5"></a>
 <a class="sourceLine" id="cb18-6" title="6"><span class="co"># now we specify a future topology that fits our HPC</span></a>
 <a class="sourceLine" id="cb18-7" title="7"><span class="co"># login node -&gt; cluster nodes -&gt; core/ multiple cores</span></a>
-<a class="sourceLine" id="cb18-8" title="8">login &lt;-<span class="st"> </span><span class="kw">tweak</span>(remote, <span class="dt">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="dt">user =</span> <span class="st">&#39;user_name_gwdg&#39;</span>) <span class="co"># user = login credential</span></a>
+<a class="sourceLine" id="cb18-8" title="8">login &lt;-<span class="st"> </span><span class="kw">tweak</span>(remote, <span class="dt">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="dt">user =</span> <span class="st">&quot;user_name_gwdg&quot;</span>) <span class="co"># user = login credential</span></a>
 <a class="sourceLine" id="cb18-9" title="9"></a>
-<a class="sourceLine" id="cb18-10" title="10">sbatch &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_slurm, <span class="dt">template =</span> <span class="st">&#39;future_slurm.tmpl&#39;</span>,</a>
-<a class="sourceLine" id="cb18-11" title="11">                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job.name =</span> <span class="st">&#39;run_hpc&#39;</span>,     <span class="co"># name of the job</span></a>
-<a class="sourceLine" id="cb18-12" title="12">                                 <span class="dt">log.file =</span> <span class="st">&#39;run_hpc.log&#39;</span>, <span class="co"># name of log file</span></a>
-<a class="sourceLine" id="cb18-13" title="13">                                 <span class="dt">queue =</span> <span class="st">&#39;medium&#39;</span>, <span class="co"># which partition</span></a>
-<a class="sourceLine" id="cb18-14" title="14">                                 <span class="dt">service =</span> <span class="st">&quot;short&quot;</span> <span class="co"># which QOS</span></a>
-<a class="sourceLine" id="cb18-15" title="15">                                 <span class="dt">walltime =</span> <span class="st">&#39;00:05:00&#39;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></a>
+<a class="sourceLine" id="cb18-10" title="10">sbatch &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_slurm, <span class="dt">template =</span> <span class="st">&quot;future_slurm.tmpl&quot;</span>,</a>
+<a class="sourceLine" id="cb18-11" title="11">                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job.name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></a>
+<a class="sourceLine" id="cb18-12" title="12">                                 <span class="dt">log.file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></a>
+<a class="sourceLine" id="cb18-13" title="13">                                 <span class="dt">queue =</span> <span class="st">&quot;medium&quot;</span>, <span class="co"># which partition</span></a>
+<a class="sourceLine" id="cb18-14" title="14">                                 <span class="dt">service =</span> <span class="st">&quot;short&quot;</span>, <span class="co"># which QOS</span></a>
+<a class="sourceLine" id="cb18-15" title="15">                                 <span class="dt">walltime =</span> <span class="st">&quot;00:05:00&quot;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></a>
 <a class="sourceLine" id="cb18-16" title="16">                                 <span class="dt">processes =</span> <span class="dv">12</span>)) <span class="co"># number of cores</span></a>
 <a class="sourceLine" id="cb18-17" title="17"></a>
 <a class="sourceLine" id="cb18-18" title="18"><span class="kw">plan</span>(<span class="kw">list</span>(</a>
@@ -364,19 +364,19 @@ code > span.ot { color: #007020; }
 <a class="sourceLine" id="cb22-2" title="2"></a>
 <a class="sourceLine" id="cb22-3" title="3"><span class="co"># there shouldn&#39;t be to much change for the login level of your plan</span></a>
 <a class="sourceLine" id="cb22-4" title="4"><span class="co"># you specify the address of the hpc and your user name</span></a>
-<a class="sourceLine" id="cb22-5" title="5">login &lt;-<span class="st"> </span><span class="kw">tweak</span>(remote, <span class="dt">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="dt">user =</span> <span class="st">&#39;user_name_gwdg&#39;</span>)</a>
+<a class="sourceLine" id="cb22-5" title="5">login &lt;-<span class="st"> </span><span class="kw">tweak</span>(remote, <span class="dt">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="dt">user =</span> <span class="st">&quot;user_name_gwdg&quot;</span>)</a>
 <a class="sourceLine" id="cb22-6" title="6"></a>
 <a class="sourceLine" id="cb22-7" title="7"><span class="co"># the sbatch, or cluster node, level becomes the first stage</span></a>
 <a class="sourceLine" id="cb22-8" title="8"><span class="co"># where you could make adjustment to control you experiment.</span></a>
 <a class="sourceLine" id="cb22-9" title="9"><span class="co"># This tweak fills out the space between the curly brackets</span></a>
 <a class="sourceLine" id="cb22-10" title="10"><span class="co"># in the future_slurm.tmpl file we created on the HPC.</span></a>
 <a class="sourceLine" id="cb22-11" title="11"><span class="co"># (scroll to the right to read an explanation of every line)</span></a>
-<a class="sourceLine" id="cb22-12" title="12">sbatch &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_slurm, <span class="dt">template =</span> <span class="st">&#39;future_slurm.tmpl&#39;</span>,</a>
-<a class="sourceLine" id="cb22-13" title="13">                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job.name =</span> <span class="st">&#39;run_hpc&#39;</span>,     <span class="co"># name of the job</span></a>
-<a class="sourceLine" id="cb22-14" title="14">                                 <span class="dt">log.file =</span> <span class="st">&#39;run_hpc.log&#39;</span>, <span class="co"># name of log file</span></a>
-<a class="sourceLine" id="cb22-15" title="15">                                 <span class="dt">queue =</span> <span class="st">&#39;medium&#39;</span>, <span class="co"># which partition</span></a>
-<a class="sourceLine" id="cb22-16" title="16">                                 <span class="dt">service =</span> <span class="st">&quot;short&quot;</span> <span class="co"># which QOS</span></a>
-<a class="sourceLine" id="cb22-17" title="17">                                 <span class="dt">walltime =</span> <span class="st">&#39;00:05:00&#39;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></a>
+<a class="sourceLine" id="cb22-12" title="12">sbatch &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_slurm, <span class="dt">template =</span> <span class="st">&quot;future_slurm.tmpl&quot;</span>,</a>
+<a class="sourceLine" id="cb22-13" title="13">                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job.name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></a>
+<a class="sourceLine" id="cb22-14" title="14">                                 <span class="dt">log.file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></a>
+<a class="sourceLine" id="cb22-15" title="15">                                 <span class="dt">queue =</span> <span class="st">&quot;medium&quot;</span>, <span class="co"># which partition</span></a>
+<a class="sourceLine" id="cb22-16" title="16">                                 <span class="dt">service =</span> <span class="st">&quot;short&quot;</span>, <span class="co"># which QOS</span></a>
+<a class="sourceLine" id="cb22-17" title="17">                                 <span class="dt">walltime =</span> <span class="st">&quot;00:05:00&quot;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></a>
 <a class="sourceLine" id="cb22-18" title="18">                                 <span class="dt">processes =</span> <span class="dv">12</span>)) <span class="co"># number of cores</span></a>
 <a class="sourceLine" id="cb22-19" title="19"></a>
 <a class="sourceLine" id="cb22-20" title="20"><span class="kw">plan</span>(<span class="kw">list</span>(</a>
@@ -386,12 +386,12 @@ code > span.ot { color: #007020; }
 <a class="sourceLine" id="cb22-24" title="24">))</a></code></pre></div>
 <p>However, if jobs are independent of each other (e.g. repetitions of the same function) and do not need more memory than one core provides, it makes sense to submit a high number of very small jobs. Instead of blocking a whole node and running the function on all availaible nodes in parallel (submitted as one job), it is also possible to submit 12 single jobs only demanding one core per job. This has the advantage that the pending time will be decreased enormously. The reason for this is that the jobs will be submitted to any available free slot (1 core) on the cluster. The <strong>SLURM</strong> system automatically schedules these small jobs with a higher priority in order to use the capacities optimally.</p>
 <div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb23-1" title="1"><span class="co"># (scroll to the right to read an explanation of every line)</span></a>
-<a class="sourceLine" id="cb23-2" title="2">sbatch &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_slurm, <span class="dt">template =</span> <span class="st">&#39;future_slurm.tmpl&#39;</span>,</a>
-<a class="sourceLine" id="cb23-3" title="3">                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job.name =</span> <span class="st">&#39;run_hpc&#39;</span>,     <span class="co"># name of the job</span></a>
-<a class="sourceLine" id="cb23-4" title="4">                                 <span class="dt">log.file =</span> <span class="st">&#39;run_hpc.log&#39;</span>, <span class="co"># name of log file</span></a>
-<a class="sourceLine" id="cb23-5" title="5">                                 <span class="dt">queue =</span> <span class="st">&#39;medium&#39;</span>, <span class="co"># which partition</span></a>
-<a class="sourceLine" id="cb23-6" title="6">                                 <span class="dt">service =</span> <span class="st">&quot;short&quot;</span> <span class="co"># which QOS</span></a>
-<a class="sourceLine" id="cb23-7" title="7">                                 <span class="dt">walltime =</span> <span class="st">&#39;00:05:00&#39;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></a>
+<a class="sourceLine" id="cb23-2" title="2">sbatch &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_slurm, <span class="dt">template =</span> <span class="st">&quot;future_slurm.tmpl&quot;</span>,</a>
+<a class="sourceLine" id="cb23-3" title="3">                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job.name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></a>
+<a class="sourceLine" id="cb23-4" title="4">                                 <span class="dt">log.file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></a>
+<a class="sourceLine" id="cb23-5" title="5">                                 <span class="dt">queue =</span> <span class="st">&quot;medium&quot;</span>, <span class="co"># which partition</span></a>
+<a class="sourceLine" id="cb23-6" title="6">                                 <span class="dt">service =</span> <span class="st">&quot;short&quot;</span>, <span class="co"># which QOS</span></a>
+<a class="sourceLine" id="cb23-7" title="7">                                 <span class="dt">walltime =</span> <span class="st">&quot;00:05:00&quot;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></a>
 <a class="sourceLine" id="cb23-8" title="8">                                 <span class="dt">processes =</span> <span class="dv">1</span>)) <span class="co"># number of cores</span></a>
 <a class="sourceLine" id="cb23-9" title="9"></a>
 <a class="sourceLine" id="cb23-10" title="10"><span class="kw">plan</span>(<span class="kw">list</span>(</a>
@@ -419,7 +419,7 @@ code > span.ot { color: #007020; }
 <a class="sourceLine" id="cb24-4" title="4"><span class="kw">library</span>(<span class="st">&quot;tidyverse&quot;</span>)</a>
 <a class="sourceLine" id="cb24-5" title="5"></a>
 <a class="sourceLine" id="cb24-6" title="6"><span class="co"># login node -&gt; cluster nodes -&gt; core/ multiple cores</span></a>
-<a class="sourceLine" id="cb24-7" title="7">login &lt;-<span class="st"> </span><span class="kw">tweak</span>(remote, <span class="dt">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="dt">user =</span> <span class="st">&#39;username&#39;</span>)</a>
+<a class="sourceLine" id="cb24-7" title="7">login &lt;-<span class="st"> </span><span class="kw">tweak</span>(remote, <span class="dt">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="dt">user =</span> <span class="st">&quot;username&quot;</span>)</a>
 <a class="sourceLine" id="cb24-8" title="8"></a>
 <a class="sourceLine" id="cb24-9" title="9"><span class="co"># We submit to the multipurpose queue with a maximum</span></a>
 <a class="sourceLine" id="cb24-10" title="10"><span class="co"># walltime of 48 hours (we specify 15 so that we</span></a>
@@ -429,12 +429,12 @@ code > span.ot { color: #007020; }
 <a class="sourceLine" id="cb24-14" title="14"><span class="co"># exclusively (the maximum number of cores on</span></a>
 <a class="sourceLine" id="cb24-15" title="15"><span class="co"># mpi nodes is 24, which means if we say 24</span></a>
 <a class="sourceLine" id="cb24-16" title="16"><span class="co"># here we wait until a node is not used by anyone).</span></a>
-<a class="sourceLine" id="cb24-17" title="17">sbatch &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_slurm, <span class="dt">template =</span> <span class="st">&#39;future_slurm.tmpl&#39;</span>,</a>
-<a class="sourceLine" id="cb24-18" title="18">                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job.name =</span> <span class="st">&#39;run_hpc&#39;</span>,     <span class="co"># name of the job</span></a>
-<a class="sourceLine" id="cb24-19" title="19">                                 <span class="dt">log.file =</span> <span class="st">&#39;run_hpc.log&#39;</span>, <span class="co"># name of log file</span></a>
-<a class="sourceLine" id="cb24-20" title="20">                                 <span class="dt">queue =</span> <span class="st">&#39;medium&#39;</span>, <span class="co"># which partition</span></a>
-<a class="sourceLine" id="cb24-21" title="21">                                 <span class="dt">service =</span> <span class="st">&quot;normal&quot;</span> <span class="co"># which QOS</span></a>
-<a class="sourceLine" id="cb24-22" title="22">                                 <span class="dt">walltime =</span> <span class="st">&#39;00:15:00&#39;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></a>
+<a class="sourceLine" id="cb24-17" title="17">sbatch &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_slurm, <span class="dt">template =</span> <span class="st">&quot;future_slurm.tmpl&quot;</span>,</a>
+<a class="sourceLine" id="cb24-18" title="18">                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job.name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></a>
+<a class="sourceLine" id="cb24-19" title="19">                                 <span class="dt">log.file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></a>
+<a class="sourceLine" id="cb24-20" title="20">                                 <span class="dt">queue =</span> <span class="st">&quot;medium&quot;</span>, <span class="co"># which partition</span></a>
+<a class="sourceLine" id="cb24-21" title="21">                                 <span class="dt">service =</span> <span class="st">&quot;normal&quot;</span>, <span class="co"># which QOS</span></a>
+<a class="sourceLine" id="cb24-22" title="22">                                 <span class="dt">walltime =</span> <span class="st">&quot;00:15:00&quot;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></a>
 <a class="sourceLine" id="cb24-23" title="23">                                 <span class="dt">processes =</span> <span class="dv">12</span>)) <span class="co"># number of cores</span></a>
 <a class="sourceLine" id="cb24-24" title="24"></a>
 <a class="sourceLine" id="cb24-25" title="25"><span class="kw">plan</span>(<span class="kw">list</span>(</a>
@@ -467,10 +467,10 @@ code > span.ot { color: #007020; }
 <a class="sourceLine" id="cb25-6" title="6"><span class="fu">sudo</span> yum install zeromq3-devel <span class="co"># Fedora</span></a>
 <a class="sourceLine" id="cb25-7" title="7"><span class="ex">pacman</span> -S zeromq <span class="co"># Archlinux</span></a></code></pre></div>
 <div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb26-1" title="1"><span class="co"># local pc</span></a>
-<a class="sourceLine" id="cb26-2" title="2">devtools<span class="op">::</span><span class="kw">install_github</span>(<span class="st">&#39;mschubert/clustermq&#39;</span>)</a>
+<a class="sourceLine" id="cb26-2" title="2">devtools<span class="op">::</span><span class="kw">install_github</span>(<span class="st">&quot;mschubert/clustermq&quot;</span>)</a>
 <a class="sourceLine" id="cb26-3" title="3"></a>
 <a class="sourceLine" id="cb26-4" title="4"><span class="co"># HPC</span></a>
-<a class="sourceLine" id="cb26-5" title="5">withr<span class="op">::</span><span class="kw">with_libpaths</span>(<span class="st">&quot;/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5&quot;</span>, devtools<span class="op">::</span><span class="kw">install_github</span>(<span class="st">&#39;mschubert/clustermq&#39;</span>))</a></code></pre></div>
+<a class="sourceLine" id="cb26-5" title="5">withr<span class="op">::</span><span class="kw">with_libpaths</span>(<span class="st">&quot;/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5&quot;</span>, devtools<span class="op">::</span><span class="kw">install_github</span>(<span class="st">&quot;mschubert/clustermq&quot;</span>))</a></code></pre></div>
 <p>Afterwards, the local <code>.Rprofile</code> needs to be modified. This can be done with the <code>usethis</code> package.</p>
 <div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb27-1" title="1"><span class="kw">edit_r_profile</span>()</a></code></pre></div>
 <div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb28-1" title="1"><span class="kw">options</span>(</a>
@@ -537,14 +537,14 @@ code > span.ot { color: #007020; }
 <h3>2. Better connection to the HPC</h3>
 <p>One inconvience is that the connection to HPC from a local <code>R</code> session can not be interrupted. If that happens, jobs are lost (using <code>future</code> there might be chance to collect every result in the <code>.future</code> folder). This also means that running code from a local computer means that it has to be running until everything is finished. When code take several days, this can easily become a problem.</p>
 <p>A way we explored for such cases is to use the <a href="https://www.gwdg.de/de/server-services/gwdg-cloud-server">GWDG Cloud Server</a>. If you install there an instance of RStudio Server, you have a cloud based IDE that you can run from everywhere with access to the internet. By default, the RStudio Server unfortunately breaks the connection every now and then, so you have to tweak it a bit to be permanently accessible. To turn off the suspended session feature, must be specified in a <code>ression.conf</code> file. After the line <code>session-timeout-minutes=0</code> is added to the file, the server must be restarted.</p>
-<div class="sourceCode" id="cb35"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb35-1" title="1"><span class="bu">cd</span> /etc/rstudion</a>
+<div class="sourceCode" id="cb35"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb35-1" title="1"><span class="bu">cd</span> /etc/rstudio</a>
 <a class="sourceLine" id="cb35-2" title="2"><span class="fu">nano</span> rsession.conf <span class="co"># add line session-timeout-minutes=0</span></a></code></pre></div>
 <div class="sourceCode" id="cb36"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb36-1" title="1"><span class="ex">session-timeout-minutes</span>=0</a></code></pre></div>
 <div class="sourceCode" id="cb37"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb37-1" title="1"><span class="fu">sudo</span> rstudio-server restart</a></code></pre></div>
 <p>Also the SSH connection becomes a bit tricky from the server. After the SSH pairs were added to the server and the HPC, it is first required to login to a <em>GWDG</em> login terminal and from there to the HPC frontend.</p>
 <div class="sourceCode" id="cb38"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb38-1" title="1"><span class="fu">ssh</span> username@login.gwdg.de</a>
 <a class="sourceLine" id="cb38-2" title="2"><span class="fu">ssh</span> username@gwdu101.gwdg.de</a></code></pre></div>
-<p>If this works, automate the two steps adding a <code>config</code> file (<code>nano config</code>) in the <code>.ssh/</code> folder on the HPC.</p>
+<p>If this works, automate the two steps adding a <code>config</code> file (<code>nano config</code>) in the <code>.ssh/</code> folder on the Cloud Server</p>
 <div class="sourceCode" id="cb39"><pre class="sourceCode bash"><code class="sourceCode bash"><a class="sourceLine" id="cb39-1" title="1"><span class="ex">Host</span> gwdu101.gwdg.de</a>
 <a class="sourceLine" id="cb39-2" title="2">  <span class="ex">ProxyCommand</span> ssh username@login.gwdg.de -W %h:%p</a>
 <a class="sourceLine" id="cb39-3" title="3">  <span class="ex">StrictHostKeyChecking</span> no</a>

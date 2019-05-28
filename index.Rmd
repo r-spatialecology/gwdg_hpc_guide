@@ -546,7 +546,7 @@ One inconvience is that the connection to HPC from a local `R` session can not b
 A way we explored for such cases is to use the [GWDG Cloud Server](https://www.gwdg.de/de/server-services/gwdg-cloud-server). If you install there an instance of RStudio Server, you have a cloud based IDE that you can run from everywhere with access to the internet. By default, the RStudio Server unfortunately breaks the connection every now and then, so you have to tweak it a bit to be permanently accessible. To turn off the suspended session feature, must be specified in a `ression.conf` file. After the line `session-timeout-minutes=0` is added to the file, the server must be restarted.
 
 ```{bash eval = FALSE}
-cd /etc/rstudion
+cd /etc/rstudio
 nano rsession.conf # add line session-timeout-minutes=0
 ```
 
@@ -565,7 +565,7 @@ ssh username@login.gwdg.de
 ssh username@gwdu101.gwdg.de
 ```
 
-If this works, automate the two steps adding a `config` file (`nano config`) in the `.ssh/` folder on the HPC.
+If this works, automate the two steps adding a `config` file (`nano config`) in the `.ssh/` folder on the Cloud Server
 
 ```{bash, eval = FALSE}
 Host gwdu101.gwdg.de
