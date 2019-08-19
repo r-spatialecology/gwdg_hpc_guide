@@ -38,7 +38,7 @@ Using *Linux* or *macOS*, it is straightforward to generate a SSH key and copy i
 
 ```{bash eval = FALSE}
 ssh-keygen -t rsa
-ssh-copy-id gwdg_user@gwdu101.gwdg.de
+ssh-copy-id gwdg_username@gwdu101.gwdg.de
 ```
 
 If `copy` is not installed by default, it can be added using the following command (*macOS*).
@@ -47,12 +47,12 @@ If `copy` is not installed by default, it can be added using the following comma
 brew install ssh-copy-id
 ```
 
-For *Windows*, [this guide](https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows) seems to cover how to connect via SSH.
+For *Windows*, [this guide](https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows) seems to cover how to connect via SSH. Using *Windows 10*, it should be also possible to use the new OpenSSH client.
 
 If the SSH key works, it should be possible to login to the HPC frontend without a password using the following command.
 
 ```{bash eval = FALSE}
-ssh gwdg_user@gwdu101.gwdg.de
+ssh gwdg_username@gwdu101.gwdg.de
 ```
 
 ### 3. Create .profile
@@ -122,11 +122,12 @@ alias jobs_info='sacct -u $USER'
 alias monitor='htop -u $USER'
 ```
 
-To be able to automatically import modules, `.bash_modules` (again, using `nano`) needs to be created. Modules provide a way to selectively activate and deactivate modifications to the user environment. This allows particular packages and versions to be found. First, the *GNU* compiler `gcc` is loaded. Second, the  messaging library `zeromq` is loaded and used later to submit jobs to the HPC. Additionally, `R_GEO` allows to load certain spatial packages in `R` later. Of coures, it's possible to load any module which is needed (to see all available modules, use `module available`).
+To be able to automatically import modules, `.bash_modules` (again, using `nano`) needs to be created. Modules provide a way to selectively activate and deactivate modifications to the user environment. This allows particular packages and versions to be found. First, the *GNU* compiler `gcc` is loaded. Second, the messaging library `zeromq` is loaded and used later to submit jobs to the HPC. The `R` module makes sure that always the most recent `R` version is used. Additionally, it's possible to load any module which is needed (to see all available modules, use `module available`), such as e.g. `R_GEO` which allows to load certain spatial packages in `R` later.
 
 ```{bash eval = FALSE}
 module load gcc
 module load zeromq
+module load R
 module load R_GEO
 ```
 
@@ -135,7 +136,7 @@ module load R_GEO
 If the previous steps all worked out, it should be possible to login to HPC without typing a password. If so, using `R` should be no problem now. The following command logs in to the HPC frontend and starts a `R` terminal.
 
 ```{bash eval = FALSE}
-ssh username@gwdu101.gwdg.de
+ssh gwdg_username@gwdu101.gwdg.de
 R
 ```
 
@@ -206,7 +207,7 @@ Installing `R` packages works as expected. The only difference to installing pac
 install.packages("tidyverse")
 ```
 
-To install packages from [GitHub](https://github.com/) it is necessaire to specify the path to the private library. Therefore, first the `devtools` and `withr` packages need to be installed. Now, the path can be provided where the package should be installed. It's possible to get this path using `.libPaths()`. This path is wrapped around the `install_github()` function.
+To install packages from [GitHub](https://github.com/) it is necessaire to specify the path to the private library. Therefore, first the `devtools` and `withr` packages need to be installed. Now, the path can be provided where the package should be installed. It's possible to get this path using `.libPaths()`. This path is wrapped around the `install_github()` function. Make sure to check the correct path each time you use a different `R` version.
 
 ```{r eval = FALSE}
 install.packages("devtools")
@@ -428,19 +429,20 @@ fancy_statistical_model <- future_map_dfr(advanced_data, function(x) {
 
 ## Using the clustermq package
 
-`clustermq` is another package that allows to submit jobs to the HPC via SSH connector. Compared to `future` (and "friends"), it has the advantage that it submits job arrays. Instead of gradually sending job after job, as done in the examples before, `clustermq` sends them all at once. This can be a huge time benefit.
+`clustermq` is another package that allows to submit jobs to the HPC via SSH connector. Compared to `future` (and "friends"), it has the advantage that it submits job arrays. Instead of gradually sending job after job, as done in the examples before, `clustermq` sends them all at once. This can be a huge time benefit. However, currently `clustermq` is only working on *Linux* and *macOS*
 
-First, all necessary dependencies need to be installed on the local system. To use `clustermq`, it has to be installed on both the local computer and the HPC.
+First, all necessary dependencies need to be installed on the local system if you use *Linux*. Loading the module `zeromq` should take care of this on the HPC.
 
 ```{bash eval=FALSE}
-# You can skip this step on Windows and OS-X, the rzmq binary has it
-# On a computing cluster, we recommend to use Conda or Linuxbrew
-brew install zeromq # Linuxbrew, Homebrew on OS-X
+# You can skip this step on Windows and macOS
+brew install zeromq # Linuxbrew, Homebrew on macOS
 conda install zeromq # Conda
 sudo apt-get install libzmq3-dev # Ubuntu
 sudo yum install zeromq3-devel # Fedora
 pacman -S zeromq # Archlinux
 ```
+
+To use `clustermq`, it has to be installed on both the local computer and the HPC.
 
 ```{r eval=FALSE}
 # local pc
@@ -459,8 +461,8 @@ edit_r_profile()
 ```{r eval=FALSE}
 options(
     clustermq.scheduler = "ssh",
-    clustermq.ssh.host = "username@gwdu101.gwdg.de", # use your user and host, obviously
-    clustermq.ssh.log = "~/cmq_ssh.log" # log for easier debugging
+    clustermq.ssh.host = "username_gwdg@gwdu101.gwdg.de", # use your user and host, obviously
+    clustermq.ssh.log = "~/clustermq_ssh.log" # log for easier debugging
 )
 ```
 
@@ -488,6 +490,7 @@ Then, again an template to submit jobs is needed, e.g. `nano clustermq_slurm.tmp
 
 module load gcc
 module load zeromq
+module load R
 module load R_GEO
 
 R --no-save --no-restore -e 'clustermq:::worker("{{ master }}")'
@@ -558,21 +561,39 @@ session-timeout-minutes=0
 sudo rstudio-server restart
 ```
 
-Also the SSH connection becomes a bit tricky from the server. After the SSH pairs were added to the server and the HPC, it is first required to login to a *GWDG* login terminal and from there to the HPC frontend.
+Also the SSH connection becomes a bit tricky from the server. Therefore, we first need to generate a SSH key pair and copy the public key information to the `authorized_keys` file on the HPC cluster. Most likely, you have to do this by hand.
 
-```{bash, eval = FALSE}
-ssh username@login.gwdg.de
-ssh username@gwdu101.gwdg.de
+```{bash eval = FALSE}
+ssh-keygen -t rsa
 ```
 
-If this works, automate the two steps adding a `config` file (`nano config`) in the `.ssh/` folder on the Cloud Server
+Now, via the terminal of the Rstudio Cloud Server, first connect to `login.gwdg.de`.
 
-```{bash, eval = FALSE}
+```{bash eval = FALSE}
+ssh gwdg_username@login.gwdg.de
+```
+
+If this works, from the new console connect to `gwdu101.gwdg.de`.
+
+```{bash eval = FALSE}
+ssh gwdg_username@gwdu101.gwdg.de
+```
+
+If this works, we can automate the two steps. Navigate to the `.ssh/` folder of the Cloud Server and create a `config` file and enter the following.
+
+```{bash eval = FALSE}
+cd .ssh
+nano config
+```
+
+```{bash eval = FALSE}
 Host gwdu101.gwdg.de
-  ProxyCommand ssh username@login.gwdg.de -W %h:%p
+  ProxyCommand ssh gwdg_username@login.gwdg.de -W %h:%p
   StrictHostKeyChecking no
   ServerAliveInterval 30
 ```
+
+Now you should be able to login from the RStudio Cloud Server Termin to the HPC directly as usual without any password identification. If so, you should be able to submit jobs to the cluster from the Cloud Server just as from your local machine. If you use `clustermq`, it's not possible to logout and login again to the Cloud Server as long as jobs are running on the HPC. So either, you need to keep the browser window open as long as jobs are running on the HPC, or use another (local) terminal to check if still jobs are running and first login again on the Cloud Server once all jobs are finished.
 
 In case you use another RStudio Server, the only thing you would have to change from the things we explained here is to open a VPN connection to the *goenet*.
 
