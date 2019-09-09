@@ -533,7 +533,7 @@ Q(fx, x = 1:3, const = list(y = 10), n_jobs = 3,
 
 ## Tips and Tricks
 
-### 1.Kill jobs/R sessions
+### 1. Kill jobs/R sessions
 
 There is an alias to kill already submitted jobs. In case something goes wrong while submitting jobs, there will be most likely several `R` sessions that do not close by themselfes or are open and keep submitting jobs. A convienent way to kill these processes is to login to the HPC frontend and use the defined alias `monitor` to enter the process manger `htop`. With `F9` it's possible to select the `R` processes and kill them. `F10` closes the process manager afterwards.
 
@@ -596,6 +596,20 @@ Host gwdu101.gwdg.de
 Now you should be able to login from the RStudio Cloud Server Termin to the HPC directly as usual without any password identification. If so, you should be able to submit jobs to the cluster from the Cloud Server just as from your local machine. If you use `clustermq`, it's not possible to logout and login again to the Cloud Server as long as jobs are running on the HPC. So either, you need to keep the browser window open as long as jobs are running on the HPC, or use another (local) terminal to check if still jobs are running and first login again on the Cloud Server once all jobs are finished.
 
 In case you use another RStudio Server, the only thing you would have to change from the things we explained here is to open a VPN connection to the *goenet*.
+
+### 3. Troubleshooting
+
+Here, we are going to collect some issue we had during the setup and using the cluster at one point or the other. This issues might be rather specific, but maybe you run into the same problems. 
+
+#### 3.1 Problems with the .Rprofile
+There was the problem that `clustermq` kept telling to specify the scheduler, even though the `.Rprofile` was set up correctly. In this case the problem was that there was no empty, new line at the end of the `.Rprofile` file.
+
+#### 3.2 
+If you use a text editor to create all the template files, it might be possible that hidden characters (e.g. line break commands) are automatically added to the template files. This can also be a problem if you switch between different byte character sets. In case your jobs return errors and you see a lot of e.g. "\r\n" in your template files (or any other files), one possible solution is to run the following command in order to convert the file to a unix character set.
+
+```{bash eval = FALSE}
+dos2unix myBatchFile
+```
 
 ## Links
 
