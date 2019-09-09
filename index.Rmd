@@ -597,14 +597,14 @@ Now you should be able to login from the RStudio Cloud Server Termin to the HPC 
 
 In case you use another RStudio Server, the only thing you would have to change from the things we explained here is to open a VPN connection to the *goenet*.
 
-### 3. Troubleshooting
+## Troubleshooting
 
 Here, we are going to collect some issue we had during the setup and using the cluster at one point or the other. This issues might be rather specific, but maybe you run into the same problems. 
 
-#### 3.1 Problems with the .Rprofile
+### 3.1 Problems with the .Rprofile
 There was the problem that `clustermq` kept telling to specify the scheduler, even though the `.Rprofile` was set up correctly. In this case the problem was that there was no empty, new line at the end of the `.Rprofile` file.
 
-#### 3.2 
+### 3.2 Byte character sets
 If you use a text editor to create all the template files, it might be possible that hidden characters (e.g. line break commands) are automatically added to the template files. This can also be a problem if you switch between different byte character sets. In case your jobs return errors and you see a lot of e.g. "\r\n" in your template files (or any other files), one possible solution is to run the following command in order to convert the file to a unix character set.
 
 ```{bash eval = FALSE}

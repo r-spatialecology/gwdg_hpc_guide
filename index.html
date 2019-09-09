@@ -152,6 +152,7 @@ code span.ot { color: #007020; }
 <li><a href="#using-the-future-package">Using the future package</a></li>
 <li><a href="#using-the-clustermq-package">Using the clustermq package</a></li>
 <li><a href="#tips-and-tricks">Tips and Tricks</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
 <li><a href="#links">Links</a></li>
 <li><a href="#acknowledgments">Acknowledgments</a></li>
 </ul></li>
@@ -588,18 +589,18 @@ code span.ot { color: #007020; }
 <p>Now you should be able to login from the RStudio Cloud Server Termin to the HPC directly as usual without any password identification. If so, you should be able to submit jobs to the cluster from the Cloud Server just as from your local machine. If you use <code>clustermq</code>, it’s not possible to logout and login again to the Cloud Server as long as jobs are running on the HPC. So either, you need to keep the browser window open as long as jobs are running on the HPC, or use another (local) terminal to check if still jobs are running and first login again on the Cloud Server once all jobs are finished.</p>
 <p>In case you use another RStudio Server, the only thing you would have to change from the things we explained here is to open a VPN connection to the <em>goenet</em>.</p>
 </div>
-<div id="troubleshooting" class="section level3">
-<h3>3. Troubleshooting</h3>
+</div>
+<div id="troubleshooting" class="section level2">
+<h2>Troubleshooting</h2>
 <p>Here, we are going to collect some issue we had during the setup and using the cluster at one point or the other. This issues might be rather specific, but maybe you run into the same problems.</p>
-<div id="problems-with-the-.rprofile" class="section level4">
-<h4>3.1 Problems with the .Rprofile</h4>
+<div id="problems-with-the-.rprofile" class="section level3">
+<h3>3.1 Problems with the .Rprofile</h3>
 <p>There was the problem that <code>clustermq</code> kept telling to specify the scheduler, even though the <code>.Rprofile</code> was set up correctly. In this case the problem was that there was no empty, new line at the end of the <code>.Rprofile</code> file.</p>
 </div>
-<div id="section" class="section level4">
-<h4>3.2</h4>
+<div id="byte-character-sets" class="section level3">
+<h3>3.2 Byte character sets</h3>
 <p>If you use a text editor to create all the template files, it might be possible that hidden characters (e.g. line break commands) are automatically added to the template files. This can also be a problem if you switch between different byte character sets. In case your jobs return errors and you see a lot of e.g. “” in your template files (or any other files), one possible solution is to run the following command in order to convert the file to a unix character set.</p>
 <div class="sourceCode" id="cb43"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb43-1"><a href="#cb43-1"></a><span class="ex">dos2unix</span> myBatchFile</span></code></pre></div>
-</div>
 </div>
 </div>
 <div id="links" class="section level2">
