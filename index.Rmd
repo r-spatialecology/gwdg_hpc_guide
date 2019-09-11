@@ -611,6 +611,9 @@ If you use a text editor to create all the template files, it might be possible 
 dos2unix myBatchFile
 ```
 
+### 3.3 Kill old processes
+We advise to make sure all processes are killed from time to time. This includes all submitted and not finished jobs using `jobs_kill` as well as all others processes. Therefore, you can use `monitor` to enter the `htop` and simply kill all processes you see that are somehow related to `R`. This is especially important if you had jobs that didn't finish successfully before.
+
 ## Links
 
 * [https://github.com/HenrikBengtsson/future](https://github.com/HenrikBengtsson/future)
