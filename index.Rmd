@@ -149,6 +149,12 @@ The HPC infrastructure is mostly accessible through partitions (formerly queues)
 
 Both partitions have additional a "quality of service" (QOS), i.e. "normal", "short" and "long" (formerly appended using "-"). This refers to the maximum walltime a job can run on the HPC. Of course this also relates to possible pending times. Generally, the possible pending time migth be longer in the "long" QOS. However, once a job is running, it's also allowed to use the partition longer.
 
+There is a maximum number of jobs that can be submitted, as well as a maximum of simultaneously running jobs. The following command allows to check the limits on the HPC. The default is a submission of maximum 5000 jobs at a time and 1000 jobs running simultaneously.
+
+```{bash eval = FALSE}
+sacctmgr -s show user $USER
+```
+
 More details can be found here.
 
 * [RUNNING JOBS WITH SLURM](https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs_slurm)
