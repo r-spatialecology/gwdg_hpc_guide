@@ -3,6 +3,7 @@ title: "*GWDG* HPC FOR R DUMMIES"
 author:
 - Marco Sciaini
 - Maximilian H.K. Hesselbarth
+- Jan Salecker
 output:
  prettydoc::html_pretty:
    toc: true
@@ -239,19 +240,20 @@ A template file is used to control how jobs are submitted to the HPC. This allow
 ## 'default.resources' as a named list.
 
 #!/bin/sh
-#SBATCH -J <%= job.name %>                             ## Name of the job
-#SBATCH -p <%= resources$queue %>                      ## Job queue
-#SBATCH -q <%= resources$service %>                    ## QOS
-#SBATCH -t <%= resources$walltime %>                   ## Walltime in minutes
-#SBATCH -n <%= resources$processes %>                  ## number of processes
-#SBATCH -N 1				                                   ## use only one host
-#SBATCH -o <%= log.file %>                             ## Output is sent to logfile
+#SBATCH --job-name <%= resources$job_name %> ## Name of the job
+#SBATCH --ntasks <%= resources$n_cpu %> ## number of processes
+#SBATCH --partition <%= resources$queue %> ## Job queue
+#SBATCH --qos <%= resources$service %> ## QOS
+#SBATCH --time <%= resources$walltime %> ## walltime in hh:mm:ss
+#SBATCH --mem-per-cpu <%=resources$mem_cpu %>	## min memory per core
+#SBATCH --nodes <%= resources$nodes %> ##  if 1 put load on one node
+#SBATCH --output <%= resources$log_file %> ## Output is sent to logfile, stdout + stderr by default
 
 ## Export value of DEBUGME environemnt var to slave
-## export DEBUGME=<%= Sys.getenv("DEBUGME") %>
+export DEBUGME=<%= Sys.getenv("DEBUGME") %>
 
 module load gcc
-module load R_GEO
+module load R
 
 Rscript -e 'batchtools::doJobCollection("<%= uri %>")'
 ```
@@ -274,12 +276,12 @@ library("furrr")
 login <- tweak(remote, workers = "gwdu101.gwdg.de", user = "user_name_gwdg") # user = login credential
 
 sbatch <- tweak(batchtools_slurm, template = "future_slurm.tmpl",
-                resources = list(job.name = "run_hpc",     # name of the job
-                                 log.file = "run_hpc.log", # name of log file
+                resources = list(job_name = "run_hpc",     # name of the job
+                                 log_file = "run_hpc.log", # name of log file
                                  queue = "medium", # which partition
                                  service = "short", # which QOS
                                  walltime = "00:05:00", # walltime <hh:mm:ss>
-                                 processes = 12)) # number of cores
+                                 n_cpu = 12)) # number of cores
 
 plan(list(
   login,
@@ -343,12 +345,12 @@ login <- tweak(remote, workers = "gwdu101.gwdg.de", user = "user_name_gwdg")
 # in the future_slurm.tmpl file we created on the HPC.
 # (scroll to the right to read an explanation of every line)
 sbatch <- tweak(batchtools_slurm, template = "future_slurm.tmpl",
-                resources = list(job.name = "run_hpc",     # name of the job
-                                 log.file = "run_hpc.log", # name of log file
+                resources = list(job_name = "run_hpc",     # name of the job
+                                 log_file = "run_hpc.log", # name of log file
                                  queue = "medium", # which partition
                                  service = "short", # which QOS
                                  walltime = "00:05:00", # walltime <hh:mm:ss>
-                                 processes = 12)) # number of cores
+                                 n_cpu = 12)) # number of cores
 
 plan(list(
   login,
@@ -362,12 +364,12 @@ However, if jobs are independent of each other (e.g. repetitions of the same fun
 ```{r eval = FALSE}
 # (scroll to the right to read an explanation of every line)
 sbatch <- tweak(batchtools_slurm, template = "future_slurm.tmpl",
-                resources = list(job.name = "run_hpc",     # name of the job
-                                 log.file = "run_hpc.log", # name of log file
+                resources = list(job_name = "run_hpc",     # name of the job
+                                 log_file = "run_hpc.log", # name of log file
                                  queue = "medium", # which partition
                                  service = "short", # which QOS
                                  walltime = "00:05:00", # walltime <hh:mm:ss>
-                                 processes = 1)) # number of cores
+                                 n_cpu = 1)) # number of cores
 
 plan(list(
   login,
@@ -408,12 +410,12 @@ login <- tweak(remote, workers = "gwdu101.gwdg.de", user = "username")
 # mpi nodes is 24, which means if we say 24
 # here we wait until a node is not used by anyone).
 sbatch <- tweak(batchtools_slurm, template = "future_slurm.tmpl",
-                resources = list(job.name = "run_hpc",     # name of the job
-                                 log.file = "run_hpc.log", # name of log file
+                resources = list(job_name = "run_hpc",     # name of the job
+                                 log_file = "run_hpc.log", # name of log file
                                  queue = "medium", # which partition
                                  service = "normal", # which QOS
                                  walltime = "00:15:00", # walltime <hh:mm:ss>
-                                 processes = 12)) # number of cores
+                                 n_cpu = 12)) # number of cores
 
 plan(list(
   login,
@@ -486,20 +488,23 @@ Then, again an template to submit jobs is needed, e.g. `nano clustermq_slurm.tmp
 ```{bash eval=FALSE}
 #!/bin/sh
 #SBATCH --job-name={{ job_name }} # job name
-#SBATCH --partition={{ queue | medium }} # name of queue
-#SBATCH --qos={{ service | normal }} # which special QOS (short/long)
-#SBATCH --time={{ walltime | 12:00:00 }} # walltime
 #SBATCH --array=1-{{ n_jobs }} # number of processes
+#SBATCH --partition={{ queue | medium }} # name of queue 
+#SBATCH --qos={{ service | normal }} # which special QOS (short/long)
+#SBATCH --time={{ walltime | 12:00:00 }} # walltime in hh:mm:ss
+#SBATCH --cpus-per-task={{ n_cpu | 1 }} # set cores per task 
+#SBATCH --mem-per-cpu={{ mem_cpu | 1024 }} # set min memory per core 
 #SBATCH --nodes={{ nodes | 1 }} # if 1 put load on one node
 #SBATCH --output={{ log_file | /dev/null }}
 #SBATCH --error={{ log_file | /dev/null }}
 
 module load gcc
-module load zeromq
+module load zeromq 
 module load R
 module load R_GEO
 
-R --no-save --no-restore -e 'clustermq:::worker("{{ master }}")'
+ulimit -v $(( 1024 * {{ mem_cpu | 1024 }} ))
+CMQ_AUTH={{ auth }} R --no-save --no-restore -e 'clustermq:::worker("{{ master }}")'
 ```
 
 1. ### How to use clustermq

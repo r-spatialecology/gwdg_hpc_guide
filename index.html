@@ -13,6 +13,7 @@
 
 <meta name="author" content="Marco Sciaini" />
 <meta name="author" content="Maximilian H.K. Hesselbarth" />
+<meta name="author" content="Jan Salecker" />
 
 
 <title>GWDG HPC FOR R DUMMIES</title>
@@ -138,6 +139,7 @@ code span.ot { color: #007020; }
 <h1 class="title toc-ignore"><em>GWDG</em> HPC FOR R DUMMIES</h1>
 <h3 class="author">Marco Sciaini</h3>
 <h3 class="author">Maximilian H.K. Hesselbarth</h3>
+<h3 class="author">Jan Salecker</h3>
 </div>
 </header>
 
@@ -321,21 +323,22 @@ code span.ot { color: #007020; }
 <span id="cb18-2"><a href="#cb18-2"></a><span class="co">## &#39;default.resources&#39; as a named list.</span></span>
 <span id="cb18-3"><a href="#cb18-3"></a></span>
 <span id="cb18-4"><a href="#cb18-4"></a><span class="co">#!/bin/sh</span></span>
-<span id="cb18-5"><a href="#cb18-5"></a><span class="co">#SBATCH -J &lt;%= job.name %&gt;                             ## Name of the job</span></span>
-<span id="cb18-6"><a href="#cb18-6"></a><span class="co">#SBATCH -p &lt;%= resources$queue %&gt;                      ## Job queue</span></span>
-<span id="cb18-7"><a href="#cb18-7"></a><span class="co">#SBATCH -q &lt;%= resources$service %&gt;                    ## QOS</span></span>
-<span id="cb18-8"><a href="#cb18-8"></a><span class="co">#SBATCH -t &lt;%= resources$walltime %&gt;                   ## Walltime in minutes</span></span>
-<span id="cb18-9"><a href="#cb18-9"></a><span class="co">#SBATCH -n &lt;%= resources$processes %&gt;                  ## number of processes</span></span>
-<span id="cb18-10"><a href="#cb18-10"></a><span class="co">#SBATCH -N 1                                                   ## use only one host</span></span>
-<span id="cb18-11"><a href="#cb18-11"></a><span class="co">#SBATCH -o &lt;%= log.file %&gt;                             ## Output is sent to logfile</span></span>
-<span id="cb18-12"><a href="#cb18-12"></a></span>
-<span id="cb18-13"><a href="#cb18-13"></a><span class="co">## Export value of DEBUGME environemnt var to slave</span></span>
-<span id="cb18-14"><a href="#cb18-14"></a><span class="co">## export DEBUGME=&lt;%= Sys.getenv(&quot;DEBUGME&quot;) %&gt;</span></span>
-<span id="cb18-15"><a href="#cb18-15"></a></span>
-<span id="cb18-16"><a href="#cb18-16"></a><span class="ex">module</span> load gcc</span>
-<span id="cb18-17"><a href="#cb18-17"></a><span class="ex">module</span> load R_GEO</span>
-<span id="cb18-18"><a href="#cb18-18"></a></span>
-<span id="cb18-19"><a href="#cb18-19"></a><span class="ex">Rscript</span> -e <span class="st">&#39;batchtools::doJobCollection(&quot;&lt;%= uri %&gt;&quot;)&#39;</span></span></code></pre></div>
+<span id="cb18-5"><a href="#cb18-5"></a><span class="co">#SBATCH --job-name &lt;%= resources$job_name %&gt; ## Name of the job</span></span>
+<span id="cb18-6"><a href="#cb18-6"></a><span class="co">#SBATCH --ntasks &lt;%= resources$n_cpu %&gt; ## number of processes</span></span>
+<span id="cb18-7"><a href="#cb18-7"></a><span class="co">#SBATCH --partition &lt;%= resources$queue %&gt; ## Job queue</span></span>
+<span id="cb18-8"><a href="#cb18-8"></a><span class="co">#SBATCH --qos &lt;%= resources$service %&gt; ## QOS</span></span>
+<span id="cb18-9"><a href="#cb18-9"></a><span class="co">#SBATCH --time &lt;%= resources$walltime %&gt; ## walltime in hh:mm:ss</span></span>
+<span id="cb18-10"><a href="#cb18-10"></a><span class="co">#SBATCH --mem-per-cpu &lt;%=resources$mem_cpu %&gt;   ## min memory per core</span></span>
+<span id="cb18-11"><a href="#cb18-11"></a><span class="co">#SBATCH --nodes &lt;%= resources$nodes %&gt; ##  if 1 put load on one node</span></span>
+<span id="cb18-12"><a href="#cb18-12"></a><span class="co">#SBATCH --output &lt;%= resources$log_file %&gt; ## Output is sent to logfile, stdout + stderr by default</span></span>
+<span id="cb18-13"><a href="#cb18-13"></a></span>
+<span id="cb18-14"><a href="#cb18-14"></a><span class="co">## Export value of DEBUGME environemnt var to slave</span></span>
+<span id="cb18-15"><a href="#cb18-15"></a><span class="bu">export</span> <span class="va">DEBUGME=</span><span class="op">&lt;</span><span class="ex">%</span>= Sys.getenv(<span class="st">&quot;DEBUGME&quot;</span>) <span class="ex">%</span><span class="op">&gt;</span></span>
+<span id="cb18-16"><a href="#cb18-16"></a></span>
+<span id="cb18-17"><a href="#cb18-17"></a><span class="ex">module</span> load gcc</span>
+<span id="cb18-18"><a href="#cb18-18"></a><span class="ex">module</span> load R</span>
+<span id="cb18-19"><a href="#cb18-19"></a></span>
+<span id="cb18-20"><a href="#cb18-20"></a><span class="ex">Rscript</span> -e <span class="st">&#39;batchtools::doJobCollection(&quot;&lt;%= uri %&gt;&quot;)&#39;</span></span></code></pre></div>
 </div>
 <div id="first-login" class="section level3">
 <h3>2. First login</h3>
@@ -351,12 +354,12 @@ code span.ot { color: #007020; }
 <span id="cb19-8"><a href="#cb19-8"></a>login &lt;-<span class="st"> </span><span class="kw">tweak</span>(remote, <span class="dt">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="dt">user =</span> <span class="st">&quot;user_name_gwdg&quot;</span>) <span class="co"># user = login credential</span></span>
 <span id="cb19-9"><a href="#cb19-9"></a></span>
 <span id="cb19-10"><a href="#cb19-10"></a>sbatch &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_slurm, <span class="dt">template =</span> <span class="st">&quot;future_slurm.tmpl&quot;</span>,</span>
-<span id="cb19-11"><a href="#cb19-11"></a>                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job.name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></span>
-<span id="cb19-12"><a href="#cb19-12"></a>                                 <span class="dt">log.file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></span>
+<span id="cb19-11"><a href="#cb19-11"></a>                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job_name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></span>
+<span id="cb19-12"><a href="#cb19-12"></a>                                 <span class="dt">log_file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></span>
 <span id="cb19-13"><a href="#cb19-13"></a>                                 <span class="dt">queue =</span> <span class="st">&quot;medium&quot;</span>, <span class="co"># which partition</span></span>
 <span id="cb19-14"><a href="#cb19-14"></a>                                 <span class="dt">service =</span> <span class="st">&quot;short&quot;</span>, <span class="co"># which QOS</span></span>
 <span id="cb19-15"><a href="#cb19-15"></a>                                 <span class="dt">walltime =</span> <span class="st">&quot;00:05:00&quot;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></span>
-<span id="cb19-16"><a href="#cb19-16"></a>                                 <span class="dt">processes =</span> <span class="dv">12</span>)) <span class="co"># number of cores</span></span>
+<span id="cb19-16"><a href="#cb19-16"></a>                                 <span class="dt">n_cpu =</span> <span class="dv">12</span>)) <span class="co"># number of cores</span></span>
 <span id="cb19-17"><a href="#cb19-17"></a></span>
 <span id="cb19-18"><a href="#cb19-18"></a><span class="kw">plan</span>(<span class="kw">list</span>(</span>
 <span id="cb19-19"><a href="#cb19-19"></a>  login,</span>
@@ -405,12 +408,12 @@ code span.ot { color: #007020; }
 <span id="cb23-10"><a href="#cb23-10"></a><span class="co"># in the future_slurm.tmpl file we created on the HPC.</span></span>
 <span id="cb23-11"><a href="#cb23-11"></a><span class="co"># (scroll to the right to read an explanation of every line)</span></span>
 <span id="cb23-12"><a href="#cb23-12"></a>sbatch &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_slurm, <span class="dt">template =</span> <span class="st">&quot;future_slurm.tmpl&quot;</span>,</span>
-<span id="cb23-13"><a href="#cb23-13"></a>                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job.name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></span>
-<span id="cb23-14"><a href="#cb23-14"></a>                                 <span class="dt">log.file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></span>
+<span id="cb23-13"><a href="#cb23-13"></a>                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job_name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></span>
+<span id="cb23-14"><a href="#cb23-14"></a>                                 <span class="dt">log_file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></span>
 <span id="cb23-15"><a href="#cb23-15"></a>                                 <span class="dt">queue =</span> <span class="st">&quot;medium&quot;</span>, <span class="co"># which partition</span></span>
 <span id="cb23-16"><a href="#cb23-16"></a>                                 <span class="dt">service =</span> <span class="st">&quot;short&quot;</span>, <span class="co"># which QOS</span></span>
 <span id="cb23-17"><a href="#cb23-17"></a>                                 <span class="dt">walltime =</span> <span class="st">&quot;00:05:00&quot;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></span>
-<span id="cb23-18"><a href="#cb23-18"></a>                                 <span class="dt">processes =</span> <span class="dv">12</span>)) <span class="co"># number of cores</span></span>
+<span id="cb23-18"><a href="#cb23-18"></a>                                 <span class="dt">n_cpu =</span> <span class="dv">12</span>)) <span class="co"># number of cores</span></span>
 <span id="cb23-19"><a href="#cb23-19"></a></span>
 <span id="cb23-20"><a href="#cb23-20"></a><span class="kw">plan</span>(<span class="kw">list</span>(</span>
 <span id="cb23-21"><a href="#cb23-21"></a>  login,</span>
@@ -420,12 +423,12 @@ code span.ot { color: #007020; }
 <p>However, if jobs are independent of each other (e.g. repetitions of the same function) and do not need more memory than one core provides, it makes sense to submit a high number of very small jobs. Instead of blocking a whole node and running the function on all availaible nodes in parallel (submitted as one job), it is also possible to submit 12 single jobs only demanding one core per job. This has the advantage that the pending time will be decreased enormously. The reason for this is that the jobs will be submitted to any available free slot (1 core) on the cluster. The <strong>SLURM</strong> system automatically schedules these small jobs with a higher priority in order to use the capacities optimally.</p>
 <div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1"></a><span class="co"># (scroll to the right to read an explanation of every line)</span></span>
 <span id="cb24-2"><a href="#cb24-2"></a>sbatch &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_slurm, <span class="dt">template =</span> <span class="st">&quot;future_slurm.tmpl&quot;</span>,</span>
-<span id="cb24-3"><a href="#cb24-3"></a>                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job.name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></span>
-<span id="cb24-4"><a href="#cb24-4"></a>                                 <span class="dt">log.file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></span>
+<span id="cb24-3"><a href="#cb24-3"></a>                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job_name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></span>
+<span id="cb24-4"><a href="#cb24-4"></a>                                 <span class="dt">log_file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></span>
 <span id="cb24-5"><a href="#cb24-5"></a>                                 <span class="dt">queue =</span> <span class="st">&quot;medium&quot;</span>, <span class="co"># which partition</span></span>
 <span id="cb24-6"><a href="#cb24-6"></a>                                 <span class="dt">service =</span> <span class="st">&quot;short&quot;</span>, <span class="co"># which QOS</span></span>
 <span id="cb24-7"><a href="#cb24-7"></a>                                 <span class="dt">walltime =</span> <span class="st">&quot;00:05:00&quot;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></span>
-<span id="cb24-8"><a href="#cb24-8"></a>                                 <span class="dt">processes =</span> <span class="dv">1</span>)) <span class="co"># number of cores</span></span>
+<span id="cb24-8"><a href="#cb24-8"></a>                                 <span class="dt">n_cpu =</span> <span class="dv">1</span>)) <span class="co"># number of cores</span></span>
 <span id="cb24-9"><a href="#cb24-9"></a></span>
 <span id="cb24-10"><a href="#cb24-10"></a><span class="kw">plan</span>(<span class="kw">list</span>(</span>
 <span id="cb24-11"><a href="#cb24-11"></a>  login,</span>
@@ -463,12 +466,12 @@ code span.ot { color: #007020; }
 <span id="cb25-15"><a href="#cb25-15"></a><span class="co"># mpi nodes is 24, which means if we say 24</span></span>
 <span id="cb25-16"><a href="#cb25-16"></a><span class="co"># here we wait until a node is not used by anyone).</span></span>
 <span id="cb25-17"><a href="#cb25-17"></a>sbatch &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_slurm, <span class="dt">template =</span> <span class="st">&quot;future_slurm.tmpl&quot;</span>,</span>
-<span id="cb25-18"><a href="#cb25-18"></a>                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job.name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></span>
-<span id="cb25-19"><a href="#cb25-19"></a>                                 <span class="dt">log.file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></span>
+<span id="cb25-18"><a href="#cb25-18"></a>                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job_name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></span>
+<span id="cb25-19"><a href="#cb25-19"></a>                                 <span class="dt">log_file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></span>
 <span id="cb25-20"><a href="#cb25-20"></a>                                 <span class="dt">queue =</span> <span class="st">&quot;medium&quot;</span>, <span class="co"># which partition</span></span>
 <span id="cb25-21"><a href="#cb25-21"></a>                                 <span class="dt">service =</span> <span class="st">&quot;normal&quot;</span>, <span class="co"># which QOS</span></span>
 <span id="cb25-22"><a href="#cb25-22"></a>                                 <span class="dt">walltime =</span> <span class="st">&quot;00:15:00&quot;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></span>
-<span id="cb25-23"><a href="#cb25-23"></a>                                 <span class="dt">processes =</span> <span class="dv">12</span>)) <span class="co"># number of cores</span></span>
+<span id="cb25-23"><a href="#cb25-23"></a>                                 <span class="dt">n_cpu =</span> <span class="dv">12</span>)) <span class="co"># number of cores</span></span>
 <span id="cb25-24"><a href="#cb25-24"></a></span>
 <span id="cb25-25"><a href="#cb25-25"></a><span class="kw">plan</span>(<span class="kw">list</span>(</span>
 <span id="cb25-26"><a href="#cb25-26"></a>  login,</span>
@@ -519,20 +522,23 @@ code span.ot { color: #007020; }
 <p>Then, again an template to submit jobs is needed, e.g. <code>nano clustermq_slurm.tmpl</code>. The template submits jobs to the HPC specifying the options the scheduling system uses.</p>
 <div class="sourceCode" id="cb31"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb31-1"><a href="#cb31-1"></a><span class="co">#!/bin/sh</span></span>
 <span id="cb31-2"><a href="#cb31-2"></a><span class="co">#SBATCH --job-name={{ job_name }} # job name</span></span>
-<span id="cb31-3"><a href="#cb31-3"></a><span class="co">#SBATCH --partition={{ queue | medium }} # name of queue</span></span>
-<span id="cb31-4"><a href="#cb31-4"></a><span class="co">#SBATCH --qos={{ service | normal }} # which special QOS (short/long)</span></span>
-<span id="cb31-5"><a href="#cb31-5"></a><span class="co">#SBATCH --time={{ walltime | 12:00:00 }} # walltime</span></span>
-<span id="cb31-6"><a href="#cb31-6"></a><span class="co">#SBATCH --array=1-{{ n_jobs }} # number of processes</span></span>
-<span id="cb31-7"><a href="#cb31-7"></a><span class="co">#SBATCH --nodes={{ nodes | 1 }} # if 1 put load on one node</span></span>
-<span id="cb31-8"><a href="#cb31-8"></a><span class="co">#SBATCH --output={{ log_file | /dev/null }}</span></span>
-<span id="cb31-9"><a href="#cb31-9"></a><span class="co">#SBATCH --error={{ log_file | /dev/null }}</span></span>
-<span id="cb31-10"><a href="#cb31-10"></a></span>
-<span id="cb31-11"><a href="#cb31-11"></a><span class="ex">module</span> load gcc</span>
-<span id="cb31-12"><a href="#cb31-12"></a><span class="ex">module</span> load zeromq</span>
-<span id="cb31-13"><a href="#cb31-13"></a><span class="ex">module</span> load R</span>
-<span id="cb31-14"><a href="#cb31-14"></a><span class="ex">module</span> load R_GEO</span>
-<span id="cb31-15"><a href="#cb31-15"></a></span>
-<span id="cb31-16"><a href="#cb31-16"></a><span class="ex">R</span> --no-save --no-restore -e <span class="st">&#39;clustermq:::worker(&quot;{{ master }}&quot;)&#39;</span></span></code></pre></div>
+<span id="cb31-3"><a href="#cb31-3"></a><span class="co">#SBATCH --array=1-{{ n_jobs }} # number of processes</span></span>
+<span id="cb31-4"><a href="#cb31-4"></a><span class="co">#SBATCH --partition={{ queue | medium }} # name of queue </span></span>
+<span id="cb31-5"><a href="#cb31-5"></a><span class="co">#SBATCH --qos={{ service | normal }} # which special QOS (short/long)</span></span>
+<span id="cb31-6"><a href="#cb31-6"></a><span class="co">#SBATCH --time={{ walltime | 12:00:00 }} # walltime in hh:mm:ss</span></span>
+<span id="cb31-7"><a href="#cb31-7"></a><span class="co">#SBATCH --cpus-per-task={{ n_cpu | 1 }} # set cores per task </span></span>
+<span id="cb31-8"><a href="#cb31-8"></a><span class="co">#SBATCH --mem-per-cpu={{ mem_cpu | 1024 }} # set min memory per core </span></span>
+<span id="cb31-9"><a href="#cb31-9"></a><span class="co">#SBATCH --nodes={{ nodes | 1 }} # if 1 put load on one node</span></span>
+<span id="cb31-10"><a href="#cb31-10"></a><span class="co">#SBATCH --output={{ log_file | /dev/null }}</span></span>
+<span id="cb31-11"><a href="#cb31-11"></a><span class="co">#SBATCH --error={{ log_file | /dev/null }}</span></span>
+<span id="cb31-12"><a href="#cb31-12"></a></span>
+<span id="cb31-13"><a href="#cb31-13"></a><span class="ex">module</span> load gcc</span>
+<span id="cb31-14"><a href="#cb31-14"></a><span class="ex">module</span> load zeromq </span>
+<span id="cb31-15"><a href="#cb31-15"></a><span class="ex">module</span> load R</span>
+<span id="cb31-16"><a href="#cb31-16"></a><span class="ex">module</span> load R_GEO</span>
+<span id="cb31-17"><a href="#cb31-17"></a></span>
+<span id="cb31-18"><a href="#cb31-18"></a><span class="bu">ulimit</span> -v <span class="va">$((</span> 1024 * {{ mem_cpu | 1024 }} <span class="va">))</span></span>
+<span id="cb31-19"><a href="#cb31-19"></a><span class="va">CMQ_AUTH=</span>{<span class="kw">{</span> <span class="ex">auth</span> <span class="kw">}</span>} <span class="ex">R</span> --no-save --no-restore -e <span class="st">&#39;clustermq:::worker(&quot;{{ master }}&quot;)&#39;</span></span></code></pre></div>
 <ol style="list-style-type: decimal">
 <li><h3 id="how-to-use-clustermq">How to use clustermq</h3></li>
 </ol>
