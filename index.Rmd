@@ -4,6 +4,7 @@ author:
 - Marco Sciaini
 - Maximilian H.K. Hesselbarth
 - Jan Salecker
+- Sebastian Hanß
 output:
  prettydoc::html_pretty:
    toc: true
