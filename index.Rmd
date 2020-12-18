@@ -44,7 +44,7 @@ ssh-keygen -t rsa -b 2048 -f <yourkey>
 
 For older *Windows* versions, [this guide](https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows) seems to cover how to connect via SSH.
 
-Once you generated the SSH key, locate the public key (make sure to never share your private key!). The default location of all SSH keys is the .ssh/ folder, which might be hidden. Login to your *GWDG* account, go to "My account" and find "Other Settings". There you can now copy the public key. For more information about connecting via SSH, please see [CONNECT WITH SSH](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:connect_with_ssh). 
+Once you generated the SSH key, locate the public key (make sure to never share your private key!). The default location of all SSH keys is the .ssh/ folder, which might be hidden. Login to your *GWDG* account, go to "My account" and find "Other Settings". There you can now copy the public key. For more information about connecting via SSH, please see ["CONNECT WITH SSH"](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:connect_with_ssh) by the *GWDG*. 
 
 If the SSH key works, it should be possible to login to the HPC frontend without a password using the following command.
 
