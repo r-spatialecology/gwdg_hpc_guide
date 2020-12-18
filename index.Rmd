@@ -36,20 +36,15 @@ The Linux shell must be set to `/bin/ksh` (and not `/bin/sh`). It's possible to 
 ### 2. SSH Key
 For a convenient login and to use `R` via SSH connector, a SSH key is needed on the HPC (private key on local computer, public key on HPC).
 
-Using *Linux* or *macOS*, it is straightforward to generate a SSH key and copy it to the HPC using the shell/terminal.
+Using *Linux* or *macOS* and *Windows 10*, it is straightforward to generate a SSH key and copy it to the HPC using the shell/terminal.
 
 ```{bash eval = FALSE}
-ssh-keygen -t rsa
-ssh-copy-id gwdg_username@gwdu101.gwdg.de
+ssh-keygen -t rsa -b 2048 -f <yourkey>
 ```
 
-If `copy` is not installed by default, it can be added using the following command (*macOS*).
+For older *Windows* versions, [this guide](https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows) seems to cover how to connect via SSH.
 
-```{bash eval = FALSE}
-brew install ssh-copy-id
-```
-
-For *Windows*, [this guide](https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows) seems to cover how to connect via SSH. Using *Windows 10*, it should be also possible to use the new OpenSSH client.
+Once you generated the SSH key, locate the public key (make sure to never share your private key!) The default location of you SSH keys is the .ssh/ folder, which might be hidden. Login to your *GWDG* account, go to "My account" and find "Other Settings". There you can now copy the public key. For more information about connecting via SSH, please see [CONNECT WITH SSH](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:connect_with_ssh). 
 
 If the SSH key works, it should be possible to login to the HPC frontend without a password using the following command.
 
