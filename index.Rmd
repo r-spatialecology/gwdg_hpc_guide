@@ -107,16 +107,25 @@ fi
 Here are some convenient aliases that could be saved in the `.bash_aliases` file (created using `nano` as before). `.bash_aliases` makes sure they are available on the HPC and allow an easier application of common **SLURM** commands. Of course, this list can be expanded by any alias required. This does not only include **SLURM** commands, but can also include *Linux* commands.
 
 ```{bash eval = FALSE}
-alias jobs_p='squeue'
-alias jobs_med='squeue --partition=medium-fas,medium-fmz'
-alias jobs_fat='squeue --partition=fat-fas,fat-fmz'
-alias jobs_user='squeue -u $USER'
-alias jobs_run='squeue -u $USER --states=RUNNING'
-alias jobs_pen='squeue -u $USER --states=PENDING'
+alias jobs_all='squeue --format="%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T %.12p"'
+alias jobs_med='squeue --partition=medium --format="%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T %.12p"'
+alias jobs_fat='squeue --partition=fat --format="%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T %.12p"'
+
+alias jobs_own='squeue -u $USER --format="%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T"'
+alias jobs_run='squeue -u $USER --states=RUNNING --format="%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T"'
+alias jobs_pen='squeue -u $USER --states=PENDING --format="%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T"'
 alias jobs_n='squeue -u $USER --states=RUNNING | wc -l'
 alias jobs_kill='scancel -u $USER'
-alias jobs_info='sacct -u $USER'
+alias jobs_info='sacct -u $USER --units=G --format=JobID,JobName,Partition,QOS,Timelimit,Elapsed,AllocNodes,AllocCPU,ReqMem,MaxRSS,State'
+
+alias fairshare='sshare -U $USER'
 alias monitor='htop -u $USER'
+
+alias rm_logs='rm -rf *.log'
+alias rm_future='rm -rf .future/'
+
+alias ls='ls -l'
+alias lsa='ls -l -a'
 ```
 
 To be able to automatically import modules, `.bash_modules` (again, using `nano`) needs to be created. Modules provide a way to selectively activate and deactivate modifications to the user environment. This allows particular packages and versions to be found. First, the *GNU* compiler `gcc` is loaded. Second, the messaging library `zeromq` is loaded and used later to submit jobs to the HPC. The `R` module makes sure that always the most recent `R` version is used. Additionally, it's possible to load any module which is needed (to see all available modules, use `module available`), such as e.g. `R_GEO` which allows to load certain spatial packages in `R` later.
