@@ -380,7 +380,8 @@ code span.ot { color: #007020; }
 <span id="cb19-10"><a href="#cb19-10"></a><span class="co"># install and load libzmq</span></span>
 <span id="cb19-11"><a href="#cb19-11"></a><span class="ex">spack</span> install libzmq</span>
 <span id="cb19-12"><a href="#cb19-12"></a><span class="ex">spack</span> load libzmq</span></code></pre></div>
-<p>Then load the R module (<code>module load r</code>), open an R Terminal with the command <code>R</code> and use <code>install.packages(&quot;clustermq&quot;)</code> <strong>Note</strong>: do <em>not</em> install the github version with <code>remotes::install_github(&#39;mschubert/clustermq&#39;)</code> until issue <a href="https://github.com/mschubert/clustermq/issues/223"><code>#223</code></a> is solved.</p>
+<p>Then load the R module (<code>module load r</code>), open an R Terminal with the command <code>R</code> and use <code>install.packages(&quot;clustermq&quot;)</code></p>
+<p><strong>Note</strong>: do <em>not</em> install the github version with <code>remotes::install_github(&#39;mschubert/clustermq&#39;)</code> until issue <a href="https://github.com/mschubert/clustermq/issues/223">#223</a> is solved.</p>
 <p>Afterwards, the local <code>.Rprofile</code> needs to be modified. This can be done with the <code>usethis</code> package.</p>
 <div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1"></a>usethis<span class="op">::</span><span class="kw">edit_r_profile</span>()</span></code></pre></div>
 <div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1"></a><span class="kw">options</span>(</span>

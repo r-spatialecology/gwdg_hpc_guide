@@ -282,7 +282,9 @@ spack install libzmq
 spack load libzmq
 ```
 
-Then load the R module (`module load r`), open an R Terminal with the command `R` and use `install.packages("clustermq")` **Note**: do *not* install the github version with `remotes::install_github('mschubert/clustermq')` until issue [`#223`](https://github.com/mschubert/clustermq/issues/223) is solved. 
+Then load the R module (`module load r`), open an R Terminal with the command `R` and use `install.packages("clustermq")` 
+
+**Note**: do *not* install the github version with `remotes::install_github('mschubert/clustermq')` until issue [#223](https://github.com/mschubert/clustermq/issues/223) is solved. 
 
 Afterwards, the local `.Rprofile` needs to be modified. This can be done with the `usethis` package.
 
