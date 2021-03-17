@@ -18,16 +18,19 @@
 
 <title>GWDG HPC FOR R DUMMIES</title>
 
-<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
-// be compatible with the behavior of Pandoc < 2.8).
-document.addEventListener('DOMContentLoaded', function(e) {
-  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
-  var i, h, a;
-  for (i = 0; i < hs.length; i++) {
-    h = hs[i];
-    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
-    a = h.attributes;
-    while (a.length > 0) h.removeAttribute(a[0].name);
+<script>// Hide empty <a> tag within highlighted CodeBlock for screen reader accessibility (see https://github.com/jgm/pandoc/issues/6352#issuecomment-626106786) -->
+// v0.0.1
+// Written by JooYoung Seo (jooyoung@psu.edu) and Atsushi Yasumoto on June 1st, 2020.
+
+document.addEventListener('DOMContentLoaded', function() {
+  const codeList = document.getElementsByClassName("sourceCode");
+  for (var i = 0; i < codeList.length; i++) {
+    var linkList = codeList[i].getElementsByTagName('a');
+    for (var j = 0; j < linkList.length; j++) {
+      if (linkList[j].innerHTML === "") {
+        linkList[j].setAttribute('aria-hidden', 'true');
+      }
+    }
   }
 });
 </script>
@@ -35,18 +38,19 @@ document.addEventListener('DOMContentLoaded', function(e) {
 
 <style type="text/css">code{white-space: pre;}</style>
 <style type="text/css" data-origin="pandoc">
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
+code.sourceCode > span { display: inline-block; line-height: 1.25; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
+code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
 div.sourceCode { margin: 1em 0; }
 pre.sourceCode { margin: 0; }
 @media screen {
 div.sourceCode { overflow: auto; }
 }
 @media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+code.sourceCode { white-space: pre-wrap; }
+code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -66,7 +70,7 @@ pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-le
 div.sourceCode
   {   }
 @media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 code span.al { color: #ff0000; font-weight: bold; } /* Alert */
 code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
@@ -164,14 +168,14 @@ code span.ot { color: #007020; }
 <div id="TOC" class="toc">
 <div class="inner">
 <ul>
-<li><a href="#gwdg-hpc"><em>GWDG</em> HPC</a>
-<ul>
+<li><a href="#gwdg-hpc"><em>GWDG</em> HPC</a><ul>
 <li><a href="#introduction">Introduction</a></li>
 <li><a href="#general-setup">General setup</a></li>
 <li><a href="#gwdg-hpc-infrastructure"><em>GWDG</em> HPC infrastructure</a></li>
 <li><a href="#installing-packages">Installing packages</a></li>
+<li><a href="#using-the-clustermq-package-currently-our-preferred-way">Using the clustermq package (currently our preferred way)</a></li>
+<li><a href="#using-r-scripts">Using R-Scripts</a></li>
 <li><a href="#using-the-future-package">Using the future package</a></li>
-<li><a href="#using-the-clustermq-package">Using the clustermq package</a></li>
 <li><a href="#tips-and-tricks">Tips and Tricks</a></li>
 <li><a href="#troubleshooting">Troubleshooting</a></li>
 <li><a href="#links">Links</a></li>
@@ -202,94 +206,107 @@ code span.ot { color: #007020; }
 <h3>2. SSH Key</h3>
 <p>For a convenient login and to use <code>R</code> via SSH connector, a SSH key is needed on the HPC (private key on local computer, public key on HPC).</p>
 <p>Using <em>Linux</em> or <em>macOS</em> and <em>Windows 10</em>, it is straightforward to generate a SSH key and copy it to the HPC using the shell/terminal.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh-keygen</span> -t rsa -b 2048 -f <span class="op">&lt;</span>yourkey<span class="op">&gt;</span></span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1"></a><span class="fu">ssh-keygen</span> -t rsa -b 2048 -f <span class="op">&lt;</span>yourkey<span class="op">&gt;</span></span></code></pre></div>
 <p>For older <em>Windows</em> versions, <a href="https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows">this guide</a> seems to cover how to connect via SSH.</p>
 <p>Once you generated the SSH key, locate the public key (make sure to never share your private key!). The default location of all SSH keys is the .ssh/ folder, which might be hidden. Login to your <em>GWDG</em> account, go to “My account” and find “Other Settings”. There you can now copy the public key. For more information about connecting via SSH, please see <a href="https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:connect_with_ssh">“CONNECT WITH SSH”</a> by the <em>GWDG</em>.</p>
-<p>If the SSH key works, it should be possible to login to the HPC frontend without a password using the following command.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> gwdg_username@gwdu101.gwdg.de</span></code></pre></div>
+<p>The HPC’s frontend nodes are only accessible from within <a href="https://info.gwdg.de/docs/doku.php?id=en:services:network_services:goenet:start">GÖNET</a>, i.e. either from your office, via VPN or via a proxy: <code>login.gwdg.de</code>. To use the proxy, you want to use a <a href="https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:connect_with_ssh#saving_the_ssh_configuration">ssh config file</a> like this:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1"></a><span class="ex">host</span> gwdg-login <span class="co">#can be any name you want</span></span>
+<span id="cb2-2"><a href="#cb2-2"></a>  <span class="fu">hostname</span> login.gwdg.de</span>
+<span id="cb2-3"><a href="#cb2-3"></a>  <span class="ex">user</span> <span class="op">&lt;</span>gwdg_username<span class="op">&gt;</span></span>
+<span id="cb2-4"><a href="#cb2-4"></a>  <span class="ex">IdentityFile</span> ~/.ssh/<span class="op">&lt;</span>yourkey<span class="op">&gt;</span></span>
+<span id="cb2-5"><a href="#cb2-5"></a> </span>
+<span id="cb2-6"><a href="#cb2-6"></a><span class="ex">host</span> hpc-gwdg </span>
+<span id="cb2-7"><a href="#cb2-7"></a>  <span class="fu">hostname</span> gwdu102 <span class="co"># or gwdu101 or gwdu103</span></span>
+<span id="cb2-8"><a href="#cb2-8"></a>  <span class="ex">user</span> <span class="op">&lt;</span>gwdg_username<span class="op">&gt;</span></span>
+<span id="cb2-9"><a href="#cb2-9"></a>  <span class="ex">IdentityFile</span> ~/.ssh/<span class="op">&lt;</span>yourkey<span class="op">&gt;</span></span>
+<span id="cb2-10"><a href="#cb2-10"></a>  <span class="ex">ProxyJump</span> gwdg-login</span></code></pre></div>
+<p>In the following we assume that ssh is set up with keys and config file and you are able to connect to the hpc with the following command:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1"></a><span class="fu">ssh</span> hpc-gwdg</span></code></pre></div>
 </div>
 <div id="create-.profile" class="section level3">
 <h3>3. Create .profile</h3>
-<p>Because <code>.bashrc</code> is not source by Scientific Linux by default (<a href="https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:bashrc">source</a>), firstly a <code>.profile</code> file is created. The following code enables that <code>.bashrc</code> is sourced every time the HPC is accessed.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nano</span> .profile</span></code></pre></div>
-<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">case</span> <span class="st">&quot;</span><span class="va">$SHELL</span><span class="st">&quot;</span><span class="kw"> in</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>/bin/bash<span class="kw">)</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">.</span> <span class="ex">/etc/bashrc</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">.</span> <span class="ex">.bashrc</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">;;</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>/usr/bin/bash<span class="kw">)</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">.</span> <span class="ex">/etc/bashrc</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">.</span> <span class="ex">.bashrc</span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">;;</span></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>/usr/local/bin/bash<span class="kw">)</span></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">.</span> <span class="ex">/etc/bashrc</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">.</span> <span class="ex">.bashrc</span></span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">;;</span></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>*<span class="kw">)</span>  <span class="kw">;;</span></span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="kw">esac</span></span></code></pre></div>
+<p>Because <code>.bashrc</code> is not sourced by Scientific Linux by default (<a href="https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:bashrc">source</a>), firstly a <code>.profile</code> file is created. The following code enables that <code>.bashrc</code> is sourced every time the HPC is accessed.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1"></a><span class="fu">nano</span> .profile</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1"></a><span class="kw">case</span> <span class="st">&quot;</span><span class="va">$SHELL</span><span class="st">&quot;</span><span class="kw"> in</span></span>
+<span id="cb5-2"><a href="#cb5-2"></a>/bin/bash<span class="kw">)</span></span>
+<span id="cb5-3"><a href="#cb5-3"></a>    <span class="bu">.</span> <span class="ex">/etc/bashrc</span></span>
+<span id="cb5-4"><a href="#cb5-4"></a>    <span class="bu">.</span> <span class="ex">.bashrc</span></span>
+<span id="cb5-5"><a href="#cb5-5"></a>    <span class="kw">;;</span></span>
+<span id="cb5-6"><a href="#cb5-6"></a>/usr/bin/bash<span class="kw">)</span></span>
+<span id="cb5-7"><a href="#cb5-7"></a>    <span class="bu">.</span> <span class="ex">/etc/bashrc</span></span>
+<span id="cb5-8"><a href="#cb5-8"></a>    <span class="bu">.</span> <span class="ex">.bashrc</span></span>
+<span id="cb5-9"><a href="#cb5-9"></a>    <span class="kw">;;</span></span>
+<span id="cb5-10"><a href="#cb5-10"></a>/usr/local/bin/bash<span class="kw">)</span></span>
+<span id="cb5-11"><a href="#cb5-11"></a>    <span class="bu">.</span> <span class="ex">/etc/bashrc</span></span>
+<span id="cb5-12"><a href="#cb5-12"></a>    <span class="bu">.</span> <span class="ex">.bashrc</span></span>
+<span id="cb5-13"><a href="#cb5-13"></a>    <span class="kw">;;</span></span>
+<span id="cb5-14"><a href="#cb5-14"></a>*<span class="kw">)</span>  <span class="kw">;;</span></span>
+<span id="cb5-15"><a href="#cb5-15"></a><span class="kw">esac</span></span></code></pre></div>
 </div>
 <div id="create-.bash-files" class="section level3">
 <h3>4. Create .bash-files</h3>
 <p>Now, the <code>.bashrc</code> file is sourced every time the HPC is accessed. This is convenient because it allows to set default settings, load aliases or modules. To keep everything organized, within <code>.bashrc</code> again different files are sourced (if they are present). This includes <code>.bash_aliases</code> and <code>.bash_modules</code>.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nano</span> .bashrc</span></code></pre></div>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># .bashrc</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Source global definitions</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span><span class="bu"> [</span> <span class="ot">-f</span> /etc/bashrc<span class="bu"> ]</span>; <span class="kw">then</span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">.</span> <span class="ex">/etc/bashrc</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="kw">fi</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co"># load aliases</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span><span class="bu"> [</span> <span class="ot">-f</span> ~/.bash_aliases<span class="bu"> ]</span>; <span class="kw">then</span></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">.</span> <span class="ex">~/.bash_aliases</span></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="kw">fi</span></span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co"># load modules</span></span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="kw">if</span><span class="bu"> [</span> <span class="ot">-f</span> ~/.bash_modules<span class="bu"> ]</span>; <span class="kw">then</span></span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">.</span> <span class="ex">~/.bash_modules</span></span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="kw">fi</span></span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1"></a><span class="fu">nano</span> .bashrc</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1"></a><span class="co"># .bashrc</span></span>
+<span id="cb7-2"><a href="#cb7-2"></a><span class="co"># Source global definitions</span></span>
+<span id="cb7-3"><a href="#cb7-3"></a><span class="kw">if</span><span class="bu"> [</span> <span class="ot">-f</span> /etc/bashrc<span class="bu"> ]</span>; <span class="kw">then</span></span>
+<span id="cb7-4"><a href="#cb7-4"></a>    <span class="bu">.</span> <span class="ex">/etc/bashrc</span></span>
+<span id="cb7-5"><a href="#cb7-5"></a><span class="kw">fi</span></span>
+<span id="cb7-6"><a href="#cb7-6"></a></span>
+<span id="cb7-7"><a href="#cb7-7"></a><span class="co"># load aliases</span></span>
+<span id="cb7-8"><a href="#cb7-8"></a><span class="kw">if</span><span class="bu"> [</span> <span class="ot">-f</span> ~/.bash_aliases<span class="bu"> ]</span>; <span class="kw">then</span></span>
+<span id="cb7-9"><a href="#cb7-9"></a>    <span class="bu">.</span> <span class="ex">~/.bash_aliases</span></span>
+<span id="cb7-10"><a href="#cb7-10"></a><span class="kw">fi</span></span>
+<span id="cb7-11"><a href="#cb7-11"></a></span>
+<span id="cb7-12"><a href="#cb7-12"></a><span class="co"># load modules</span></span>
+<span id="cb7-13"><a href="#cb7-13"></a><span class="kw">if</span><span class="bu"> [</span> <span class="ot">-f</span> ~/.bash_modules<span class="bu"> ]</span>; <span class="kw">then</span></span>
+<span id="cb7-14"><a href="#cb7-14"></a>    <span class="bu">.</span> <span class="ex">~/.bash_modules</span></span>
+<span id="cb7-15"><a href="#cb7-15"></a><span class="kw">fi</span></span></code></pre></div>
 <p>Here are some convenient aliases that could be saved in the <code>.bash_aliases</code> file (created using <code>nano</code> as before). <code>.bash_aliases</code> makes sure they are available on the HPC and allow an easier application of common <strong>SLURM</strong> commands. Of course, this list can be expanded by any alias required. This does not only include <strong>SLURM</strong> commands, but can also include <em>Linux</em> commands.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> jobs_all=<span class="st">&#39;squeue --format=&quot;%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T %.12p&quot;&#39;</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> jobs_med=<span class="st">&#39;squeue --partition=medium --format=&quot;%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T %.12p&quot;&#39;</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> jobs_fat=<span class="st">&#39;squeue --partition=fat --format=&quot;%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T %.12p&quot;&#39;</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> jobs_own=<span class="st">&#39;squeue -u $USER --format=&quot;%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T&quot;&#39;</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> jobs_run=<span class="st">&#39;squeue -u $USER --states=RUNNING --format=&quot;%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T&quot;&#39;</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> jobs_pen=<span class="st">&#39;squeue -u $USER --states=PENDING --format=&quot;%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T&quot;&#39;</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> jobs_n=<span class="st">&#39;squeue -u $USER --states=RUNNING | wc -l&#39;</span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> jobs_kill=<span class="st">&#39;scancel -u $USER&#39;</span></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> jobs_info=<span class="st">&#39;sacct -u $USER --units=G --format=JobID,JobName,Partition,QOS,Timelimit,Elapsed,AllocNodes,AllocCPU,ReqMem,MaxRSS,State&#39;</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> fairshare=<span class="st">&#39;sshare -U $USER&#39;</span></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> monitor=<span class="st">&#39;htop -u $USER&#39;</span></span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> rm_logs=<span class="st">&#39;rm -rf *.log&#39;</span></span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> rm_future=<span class="st">&#39;rm -rf .future/&#39;</span></span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> ls=<span class="st">&#39;ls -l&#39;</span></span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="bu">alias</span> lsa=<span class="st">&#39;ls -l -a&#39;</span></span></code></pre></div>
-<p>To be able to automatically import modules, <code>.bash_modules</code> (again, using <code>nano</code>) needs to be created. Modules provide a way to selectively activate and deactivate modifications to the user environment. This allows particular packages and versions to be found. First, the <em>GNU</em> compiler <code>gcc</code> is loaded. Second, the messaging library <code>zeromq</code> is loaded and used later to submit jobs to the HPC. The <code>R</code> module makes sure that always the most recent <code>R</code> version is used. Additionally, it’s possible to load any module which is needed (to see all available modules, use <code>module available</code>), such as e.g. <code>R_GEO</code> which allows to load certain spatial packages in <code>R</code> later.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load gcc/7.4.0</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load zeromq</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load R</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load R_GEO</span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1"></a><span class="bu">alias</span> jobs_all=<span class="st">&#39;squeue --format=&quot;%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T %.12p&quot;&#39;</span></span>
+<span id="cb8-2"><a href="#cb8-2"></a><span class="bu">alias</span> jobs_med=<span class="st">&#39;squeue --partition=medium --format=&quot;%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T %.12p&quot;&#39;</span></span>
+<span id="cb8-3"><a href="#cb8-3"></a><span class="bu">alias</span> jobs_fat=<span class="st">&#39;squeue --partition=fat --format=&quot;%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T %.12p&quot;&#39;</span></span>
+<span id="cb8-4"><a href="#cb8-4"></a></span>
+<span id="cb8-5"><a href="#cb8-5"></a><span class="bu">alias</span> jobs_own=<span class="st">&#39;squeue -u $USER --format=&quot;%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T&quot;&#39;</span></span>
+<span id="cb8-6"><a href="#cb8-6"></a><span class="bu">alias</span> jobs_run=<span class="st">&#39;squeue -u $USER --states=RUNNING --format=&quot;%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T&quot;&#39;</span></span>
+<span id="cb8-7"><a href="#cb8-7"></a><span class="bu">alias</span> jobs_pen=<span class="st">&#39;squeue -u $USER --states=PENDING --format=&quot;%.12i %.12j %.8u %.3P %.3q %.10l %.10M %.5D %.4C %.7m %16R %.8T&quot;&#39;</span></span>
+<span id="cb8-8"><a href="#cb8-8"></a><span class="bu">alias</span> jobs_n=<span class="st">&#39;squeue -u $USER --states=RUNNING | wc -l&#39;</span></span>
+<span id="cb8-9"><a href="#cb8-9"></a><span class="bu">alias</span> jobs_kill=<span class="st">&#39;scancel -u $USER&#39;</span></span>
+<span id="cb8-10"><a href="#cb8-10"></a><span class="bu">alias</span> jobs_info=<span class="st">&#39;sacct -u $USER --units=G --format=JobID,JobName,Partition,QOS,Timelimit,Elapsed,AllocNodes,AllocCPU,ReqMem,MaxRSS,State&#39;</span></span>
+<span id="cb8-11"><a href="#cb8-11"></a></span>
+<span id="cb8-12"><a href="#cb8-12"></a><span class="bu">alias</span> fairshare=<span class="st">&#39;sshare -U $USER&#39;</span></span>
+<span id="cb8-13"><a href="#cb8-13"></a><span class="bu">alias</span> monitor=<span class="st">&#39;htop -u $USER&#39;</span></span>
+<span id="cb8-14"><a href="#cb8-14"></a></span>
+<span id="cb8-15"><a href="#cb8-15"></a><span class="bu">alias</span> rm_logs=<span class="st">&#39;rm -rf *.log&#39;</span></span>
+<span id="cb8-16"><a href="#cb8-16"></a><span class="bu">alias</span> rm_future=<span class="st">&#39;rm -rf .future/&#39;</span></span>
+<span id="cb8-17"><a href="#cb8-17"></a></span>
+<span id="cb8-18"><a href="#cb8-18"></a><span class="bu">alias</span> ls=<span class="st">&#39;ls -l&#39;</span></span>
+<span id="cb8-19"><a href="#cb8-19"></a><span class="bu">alias</span> lsa=<span class="st">&#39;ls -l -a&#39;</span></span></code></pre></div>
+<p>Software on the hpc is <a href="https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:spack_and_modulefiles">organized with <code>modules</code> and <code>spack</code></a>. Modules provide a way to selectively load and unload pre-installed software to the user environment. To see all available modules, use <code>module available</code>. <code>Spack</code> allows the users to install and load additional software from th <a href="https://spack.readthedocs.io/en/latest/package_list.html">Spack repository</a>.</p>
+<p>To be able to automatically import modules, <code>.bash_modules</code> (again, using <code>nano</code>) needs to be created. Mine looks like this:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1"></a><span class="ex">module</span> load r</span>
+<span id="cb9-2"><a href="#cb9-2"></a><span class="ex">module</span> load spack-user</span>
+<span id="cb9-3"><a href="#cb9-3"></a><span class="co"># Enabling Spack Shell Support</span></span>
+<span id="cb9-4"><a href="#cb9-4"></a><span class="bu">.</span> <span class="ex">/opt/sw/rev/20.12/haswell/gcc-9.3.0/spack-user-0.16.0-qbaee6/share/spack/setup-env.sh</span></span>
+<span id="cb9-5"><a href="#cb9-5"></a><span class="ex">spack</span> load libzmq</span></code></pre></div>
 </div>
 <div id="try-to-run-r-on-the-hpc" class="section level3">
 <h3>5. Try to run <code>R</code> on the HPC</h3>
 <p>If the previous steps all worked out, it should be possible to login to HPC without typing a password. If so, using <code>R</code> should be no problem now. The following command logs in to the HPC frontend and starts a <code>R</code> terminal.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> gwdg_username@gwdu101.gwdg.de</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ex">R</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1"></a><span class="fu">ssh</span> hpc-gwdg</span>
+<span id="cb10-2"><a href="#cb10-2"></a><span class="ex">R</span></span></code></pre></div>
 </div>
 </div>
 <div id="gwdg-hpc-infrastructure" class="section level2">
 <h2><em>GWDG</em> HPC infrastructure</h2>
-<p>The HPC infrastructure is mostly accessible through partitions (formerly queues). A full overview can be found here: <a href="http://hpc.gwdg.de/systems.html">High-Performance Computing in Göttingen (outdated)</a>. There are two general base partitions that are of interest.</p>
+<p>The HPC infrastructure is mostly accessible through partitions (formerly queues). A full overview can be found here: <a href="https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:start">High Performance Computing</a>. There are two general base partitions that are of interest.</p>
 <ul>
-<li><strong>medium</strong> - lots of cores, fewer memory, short pending time (formerly MPI)</li>
+<li><strong>medium</strong> - lots of cores, fewer memory, short pending time</li>
 <li><strong>fat</strong> - fewer cores, lots of memory, long pending time</li>
 </ul>
-<p>Both partitions have additional a “quality of service” (QOS), i.e. “normal”, “short” and “long” (formerly appended using “-”). This refers to the maximum walltime a job can run on the HPC. Of course this also relates to possible pending times. Generally, the possible pending time might be longer in the “long” QOS. However, once a job is running, it’s also allowed to use the partition longer.</p>
+<p>Both partitions have additional a <a href="https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:running_jobs_slurm#runtime_limits_qos">“quality of service” (QOS)</a>, i.e. “normal”, “short” and “long”. This refers to the maximum walltime a job can run on the HPC. Of course this also relates to possible pending times. Generally, the possible pending time might be longer in the “long” QOS. However, once a job is running, it’s also allowed to use the partition longer. “short” is intended for testing and development, not for massive production.</p>
 <p>There is a maximum number of jobs that can be submitted, as well as a maximum of simultaneously running jobs. The following command allows to check the limits on the HPC. The default is a submission of maximum 5000 jobs at a time and 1000 jobs running simultaneously.</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">sacctmgr</span> -s show user <span class="va">$USER</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1"></a><span class="ex">sacctmgr</span> -s show user <span class="va">$USER</span></span></code></pre></div>
 <p>More details can be found here.</p>
 <ul>
 <li><a href="https://info.gwdg.de/dokuwiki/doku.php?id=en:services:application_services:high_performance_computing:running_jobs_slurm">RUNNING JOBS WITH SLURM</a></li>
@@ -314,154 +331,244 @@ code span.ot { color: #007020; }
 <div id="loading-modules" class="section level3">
 <h3>Loading modules</h3>
 <p>As described above, modules help to select software versions needed to run code. The following command displays all available modules provided by the <em>GWDG</em>.</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> avail</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1"></a><span class="ex">module</span> avail</span></code></pre></div>
 <p>Modules can be loaded using the following command and the name of the corresponding module.</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load R</span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1"></a><span class="ex">module</span> load R</span></code></pre></div>
 <p>It is possible to list all loaded modules. This list should at least contain all modules specified in the <code>.bash_modules</code> file plus all later additionally loaded modules.</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> list</span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1"></a><span class="ex">module</span> list</span></code></pre></div>
 <p>Disconnecting and reconnecting via ssh also removes all modules (with exception of those specified in the <code>.bash_modules</code> file). To detach selected modules or all modules at once without logging out, the <code>purge</code> command can be used.</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> purge R</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> purge</span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1"></a><span class="ex">module</span> purge R</span>
+<span id="cb15-2"><a href="#cb15-2"></a><span class="ex">module</span> purge</span></code></pre></div>
 </div>
 </div>
 <div id="installing-packages" class="section level2">
 <h2>Installing packages</h2>
 <p>All packages used in a local scripts must also be also installed on the HPC. This must be done for all <code>R</code> versions separately, i.e. if <code>R</code> is updated on the HPC, all packages must be re-installed. The easiest way to install packages on the HPC is to login to the frontend and start <code>R</code>.</p>
 <p>Installing <code>R</code> packages works as expected. The only difference to installing packages locally is that <code>R</code> might asks to use the private library of the user (in which the user has writing rights).</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># For example</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;tidyverse&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1"></a><span class="co"># For example</span></span>
+<span id="cb16-2"><a href="#cb16-2"></a><span class="kw">install.packages</span>(<span class="st">&quot;tidyverse&quot;</span>)</span></code></pre></div>
 <p>To install packages from <a href="https://github.com/">GitHub</a> it is necessary to specify the path to the private library. Therefore, first the <code>devtools</code> and <code>withr</code> packages need to be installed. Now, the path can be provided where the package should be installed. It’s possible to get this path using <code>.libPaths()</code>. This path is wrapped around the <code>install_github()</code> function. Make sure to check the correct path each time you use a different <code>R</code> version.</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;devtools&quot;</span>)</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;withr&quot;</span>)</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="co"># and look for your .libPath</span></span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="fu">.libPaths</span>()</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>withr<span class="sc">::</span><span class="fu">with_libpaths</span>(<span class="at">new =</span> <span class="st">&quot;/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5&quot;</span>,</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>                     <span class="at">code =</span> devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">&quot;r-spatialecogy/landscapemetrics&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1"></a><span class="kw">install.packages</span>(<span class="st">&quot;devtools&quot;</span>)</span>
+<span id="cb17-2"><a href="#cb17-2"></a><span class="kw">install.packages</span>(<span class="st">&quot;withr&quot;</span>)</span>
+<span id="cb17-3"><a href="#cb17-3"></a></span>
+<span id="cb17-4"><a href="#cb17-4"></a><span class="co"># and look for your .libPath</span></span>
+<span id="cb17-5"><a href="#cb17-5"></a><span class="kw">.libPaths</span>()</span>
+<span id="cb17-6"><a href="#cb17-6"></a></span>
+<span id="cb17-7"><a href="#cb17-7"></a>withr<span class="op">::</span><span class="kw">with_libpaths</span>(<span class="dt">new =</span> <span class="st">&quot;/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5&quot;</span>,</span>
+<span id="cb17-8"><a href="#cb17-8"></a>                     <span class="dt">code =</span> devtools<span class="op">::</span><span class="kw">install_github</span>(<span class="st">&quot;r-spatialecogy/landscapemetrics&quot;</span>)</span></code></pre></div>
+</div>
+<div id="using-the-clustermq-package-currently-our-preferred-way" class="section level2">
+<h2>Using the clustermq package (currently our preferred way)</h2>
+<p><code>clustermq</code> is a package that allows to submit jobs to the HPC via SSH connector. Compared to <code>future</code> (see below), it has the advantage that it submits job arrays. Instead of gradually sending job after job, as done in the examples before, <code>clustermq</code> sends them all at once. This can be a huge time benefit. However, currently <code>clustermq</code> is only working on <em>Linux</em> and <em>macOS</em> (see <a href="https://github.com/mschubert/clustermq/issues/84">#84</a>, <a href="https://github.com/mschubert/clustermq/issues/238">#238</a>).</p>
+<p>First, all necessary dependencies need to be installed on the local system if you use <em>Linux</em>.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1"></a><span class="co"># You can skip this step on Windows and macOS</span></span>
+<span id="cb18-2"><a href="#cb18-2"></a><span class="ex">brew</span> install zeromq <span class="co"># Linuxbrew, Homebrew on macOS</span></span>
+<span id="cb18-3"><a href="#cb18-3"></a><span class="ex">conda</span> install zeromq <span class="co"># Conda</span></span>
+<span id="cb18-4"><a href="#cb18-4"></a><span class="fu">sudo</span> apt-get install libzmq3-dev <span class="co"># Ubuntu</span></span>
+<span id="cb18-5"><a href="#cb18-5"></a><span class="fu">sudo</span> yum install zeromq3-devel <span class="co"># Fedora</span></span>
+<span id="cb18-6"><a href="#cb18-6"></a><span class="ex">pacman</span> -S zeromq <span class="co"># Archlinux</span></span></code></pre></div>
+<p>To use <code>clustermq</code>, it has to be installed on both the local computer and the HPC. To install <code>clustermq</code> on the HPC first install the library <code>libzmq</code>:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1"></a><span class="co"># first unload all compiler modules, otherwise Spack might be confused with different versions</span></span>
+<span id="cb19-2"><a href="#cb19-2"></a><span class="ex">module</span> purge gcc </span>
+<span id="cb19-3"><a href="#cb19-3"></a></span>
+<span id="cb19-4"><a href="#cb19-4"></a><span class="co"># the Spack module is needed</span></span>
+<span id="cb19-5"><a href="#cb19-5"></a><span class="ex">module</span> load spack-user</span>
+<span id="cb19-6"><a href="#cb19-6"></a></span>
+<span id="cb19-7"><a href="#cb19-7"></a><span class="co"># Enabling Spack shell support for loading spack modules</span></span>
+<span id="cb19-8"><a href="#cb19-8"></a><span class="bu">.</span> <span class="ex">/opt/sw/rev/20.12/haswell/gcc-9.3.0/spack-user-0.16.0-qbaee6/share/spack/setup-env.sh</span></span>
+<span id="cb19-9"><a href="#cb19-9"></a></span>
+<span id="cb19-10"><a href="#cb19-10"></a><span class="co"># install and load libzmq</span></span>
+<span id="cb19-11"><a href="#cb19-11"></a><span class="ex">spack</span> install libzmq</span>
+<span id="cb19-12"><a href="#cb19-12"></a><span class="ex">spack</span> load libzmq</span></code></pre></div>
+<p>Then load the R module (<code>module load r</code>), open an R Terminal with the command <code>R</code> and use <code>install.packages(&quot;clustermq&quot;)</code> <strong>Note</strong>: do <em>not</em> install the github version with <code>remotes::install_github(&#39;mschubert/clustermq&#39;)</code> until issue <a href="https://github.com/mschubert/clustermq/issues/223"><code>#223</code></a> is solved.</p>
+<p>Afterwards, the local <code>.Rprofile</code> needs to be modified. This can be done with the <code>usethis</code> package.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1"></a>usethis<span class="op">::</span><span class="kw">edit_r_profile</span>()</span></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1"></a><span class="kw">options</span>(</span>
+<span id="cb21-2"><a href="#cb21-2"></a>    <span class="dt">clustermq.scheduler =</span> <span class="st">&quot;ssh&quot;</span>,</span>
+<span id="cb21-3"><a href="#cb21-3"></a>    <span class="dt">clustermq.ssh.host =</span> <span class="st">&quot;gwdg-hpc&quot;</span>, <span class="co"># use your user and host, obviously</span></span>
+<span id="cb21-4"><a href="#cb21-4"></a>    <span class="dt">clustermq.ssh.log =</span> <span class="st">&quot;~/clustermq_ssh.log&quot;</span> <span class="co"># log for easier debugging</span></span>
+<span id="cb21-5"><a href="#cb21-5"></a>)</span></code></pre></div>
+<p>Also the <code>.Rprofile</code> on the HPC (<code>nano .Rprofile</code> in the home directory) needs to be modified.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1"></a><span class="kw">options</span>(</span>
+<span id="cb22-2"><a href="#cb22-2"></a>    <span class="dt">clustermq.scheduler =</span> <span class="st">&quot;slurm&quot;</span>,</span>
+<span id="cb22-3"><a href="#cb22-3"></a>    <span class="dt">clustermq.template =</span> <span class="st">&quot;/usr/users/username/clustermq_slurm.tmpl&quot;</span></span>
+<span id="cb22-4"><a href="#cb22-4"></a>)</span></code></pre></div>
+<p>Then, again an template to submit jobs is needed, e.g. <code>nano clustermq_slurm.tmpl</code>. The template submits jobs to the HPC specifying the options the scheduling system uses.</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1"></a><span class="co">#!/bin/sh</span></span>
+<span id="cb23-2"><a href="#cb23-2"></a><span class="co">#SBATCH --job-name={{ job_name }} # job name</span></span>
+<span id="cb23-3"><a href="#cb23-3"></a><span class="co">#SBATCH --array=1-{{ n_jobs }} # number of processes</span></span>
+<span id="cb23-4"><a href="#cb23-4"></a><span class="co">#SBATCH --partition={{ queue | medium }} # name of queue </span></span>
+<span id="cb23-5"><a href="#cb23-5"></a><span class="co">#SBATCH --qos={{ service | normal }} # which special QOS (short/long)</span></span>
+<span id="cb23-6"><a href="#cb23-6"></a><span class="co">#SBATCH --time={{ walltime | 12:00:00 }} # walltime in hh:mm:ss</span></span>
+<span id="cb23-7"><a href="#cb23-7"></a><span class="co">#SBATCH --cpus-per-task={{ n_cpu | 1 }} # set cores per task </span></span>
+<span id="cb23-8"><a href="#cb23-8"></a><span class="co">#SBATCH --mem-per-cpu={{ mem_cpu | 1024 }} # set min memory per core </span></span>
+<span id="cb23-9"><a href="#cb23-9"></a><span class="co">#SBATCH --nodes={{ nodes | 1 }} # if 1 put load on one node</span></span>
+<span id="cb23-10"><a href="#cb23-10"></a><span class="co">#SBATCH --output={{ log_file | /dev/null }}</span></span>
+<span id="cb23-11"><a href="#cb23-11"></a><span class="co">#SBATCH --error={{ log_file | /dev/null }}</span></span>
+<span id="cb23-12"><a href="#cb23-12"></a></span>
+<span id="cb23-13"><a href="#cb23-13"></a><span class="bu">ulimit</span> -v <span class="va">$((</span> 1024 * {{ mem_cpu | 1024 }} <span class="va">))</span></span>
+<span id="cb23-14"><a href="#cb23-14"></a><span class="va">CMQ_AUTH=</span>{<span class="kw">{</span> <span class="ex">auth</span> <span class="kw">}</span>} <span class="ex">R</span> --no-save --no-restore -e <span class="st">&#39;clustermq:::worker(&quot;{{ master }}&quot;)&#39;</span></span></code></pre></div>
+<ol style="list-style-type: decimal">
+<li><h3 id="how-to-use-clustermq">How to use clustermq</h3></li>
+</ol>
+<p><code>clustermq</code> does not rely on plans as <code>future</code>. Submitting jobs becomes as easy as providing a function and a list or vector to iterate over. In the example, for each <code>x = 1...5</code> a single job is submitted to the HPC. Contrastingly, <code>y = 10</code> is hold constant for all submitted jobs. In case user-defined functions are needed, these can be specified by the the <code>export</code> argument of the <code>Q()</code> function. It’s also possible to iterate over rows of a data frame.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1"></a><span class="kw">library</span>(clustermq)</span>
+<span id="cb24-2"><a href="#cb24-2"></a></span>
+<span id="cb24-3"><a href="#cb24-3"></a>fx =<span class="st"> </span><span class="cf">function</span>(x, y) x <span class="op">*</span><span class="st"> </span><span class="dv">2</span> <span class="op">+</span><span class="st"> </span>y</span>
+<span id="cb24-4"><a href="#cb24-4"></a><span class="kw">Q</span>(fx, <span class="dt">x =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">5</span>, <span class="dt">const =</span> <span class="kw">list</span>(<span class="dt">y =</span> <span class="dv">10</span>), <span class="dt">n_jobs =</span> <span class="dv">1</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1"></a><span class="co"># Run a simple multiplication for data frame columns x and y on a worker node</span></span>
+<span id="cb25-2"><a href="#cb25-2"></a>fx =<span class="st"> </span><span class="cf">function</span> (x, y) x <span class="op">*</span><span class="st"> </span>y</span>
+<span id="cb25-3"><a href="#cb25-3"></a></span>
+<span id="cb25-4"><a href="#cb25-4"></a>df =<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">x =</span> <span class="dv">5</span>, <span class="dt">y =</span> <span class="dv">10</span>)</span>
+<span id="cb25-5"><a href="#cb25-5"></a></span>
+<span id="cb25-6"><a href="#cb25-6"></a><span class="kw">Q_rows</span>(df, fx, <span class="dt">job_size =</span> <span class="dv">1</span>)</span>
+<span id="cb25-7"><a href="#cb25-7"></a></span>
+<span id="cb25-8"><a href="#cb25-8"></a><span class="co"># Q_rows also matches the names of a data frame with the function arguments</span></span>
+<span id="cb25-9"><a href="#cb25-9"></a>fx =<span class="st"> </span><span class="cf">function</span> (x, y) x <span class="op">-</span><span class="st"> </span>y</span>
+<span id="cb25-10"><a href="#cb25-10"></a></span>
+<span id="cb25-11"><a href="#cb25-11"></a>df =<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">y =</span> <span class="dv">5</span>, <span class="dt">x =</span> <span class="dv">10</span>)</span>
+<span id="cb25-12"><a href="#cb25-12"></a></span>
+<span id="cb25-13"><a href="#cb25-13"></a><span class="kw">Q_rows</span>(df, fx, <span class="dt">job_size =</span> <span class="dv">1</span>)</span></code></pre></div>
+<p>All parameters within <code>{{ }}</code> in the template file can be specified using a list and the <code>template</code> argument of the <code>Q()</code> function. Therefore, it is very easy to e.g. submit to the short <em>QOS</em> and set the walltime to 5 minutes (<hh:mm:ss>). Of course, additional arguments can be added to the template.</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1"></a><span class="kw">Q</span>(fx, <span class="dt">x =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">3</span>, <span class="dt">const =</span> <span class="kw">list</span>(<span class="dt">y =</span> <span class="dv">10</span>), <span class="dt">n_jobs =</span> <span class="dv">3</span>, </span>
+<span id="cb26-2"><a href="#cb26-2"></a>  <span class="dt">template =</span> <span class="kw">list</span>(<span class="dt">walltime =</span> <span class="st">&quot;00:05:00&quot;</span>, </span>
+<span id="cb26-3"><a href="#cb26-3"></a>                  <span class="dt">service =</span> <span class="st">&quot;short&quot;</span>))</span></code></pre></div>
+</div>
+<div id="using-r-scripts" class="section level2">
+<h2>Using R-Scripts</h2>
+<p>You can run R-Scripts with the <code>sbatch</code> command directly from the HPC frontend node. You can add the #SBATCH options to the top of your R script and submit it with sbatch. Slurm will take any script e.g. </p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1"></a><span class="co">#!/usr/bin/env Rscript</span></span>
+<span id="cb27-2"><a href="#cb27-2"></a><span class="co">#SBATCH -n 4</span></span>
+<span id="cb27-3"><a href="#cb27-3"></a><span class="co">#SBATCH -o rtest.out</span></span>
+<span id="cb27-4"><a href="#cb27-4"></a></span>
+<span id="cb27-5"><a href="#cb27-5"></a>test =<span class="st"> </span><span class="kw">c</span>(<span class="st">&#39;test2&#39;</span>,<span class="st">&#39;test1&#39;</span>)</span>
+<span id="cb27-6"><a href="#cb27-6"></a>test</span>
+<span id="cb27-7"><a href="#cb27-7"></a><span class="kw">system</span>(<span class="st">&quot;hostname&quot;</span>)</span></code></pre></div>
+<p>That will work with <code>sbatch &lt;scriptname&gt;</code> as long as you loaded the R module.</p>
 </div>
 <div id="using-the-future-package" class="section level2">
 <h2>Using the future package</h2>
+<p>This used to be our preffered way, but <code>clustermq</code> is just more stable to use. This guide might therefore a bit dated.</p>
 <p>One of the ways to use the <em>GWDG</em> HPC is the <code>future</code> package and framework. The advantage of <code>future</code> is that code can be run on the HPC with only minor changes. Furthermore, specifying how to parallelise the <code>R</code> code is straightforward, as to control how to distribute jobs over nodes and cores. A <a href="https://github.com/HenrikBengtsson/future">basic knowledge</a> of <code>future</code> is advised.</p>
 <div id="create-template-to-submit-jobs" class="section level3">
 <h3>1. Create template to submit jobs</h3>
 <p>A template file is used to control how jobs are submitted to the HPC. This allows to pass arguments as <code>R</code> syntax from the local <code>R</code> session to the <strong>SLURM</strong> system as <code>sbatch</code> commands. The template file, called e.g. <code>future_slurm.tmpl</code>, needs to be created on the HPC (same same <code>nano future_slurm.tmpl</code>). The following is an example for such a template file allowing to specify the most important <code>sbatch</code> options.</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">## Default resources can be set in your .batchtools.conf.R by defining the variable</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co">## &#39;default.resources&#39; as a named list.</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/sh</span></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --job-name &lt;%= resources$job_name %&gt; ## Name of the job</span></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --ntasks &lt;%= resources$n_cpu %&gt; ## number of processes</span></span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --partition &lt;%= resources$queue %&gt; ## Job queue</span></span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --qos &lt;%= resources$service %&gt; ## QOS</span></span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --time &lt;%= resources$walltime %&gt; ## walltime in hh:mm:ss</span></span>
-<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --mem-per-cpu &lt;%=resources$mem_cpu %&gt;   ## min memory per core</span></span>
-<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --nodes &lt;%= resources$nodes %&gt; ##  if 1 put load on one node</span></span>
-<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --output &lt;%= resources$log_file %&gt; ## Output is sent to logfile, stdout + stderr by default</span></span>
-<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="co">## Export value of DEBUGME environment var to slave</span></span>
-<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">DEBUGME=</span><span class="op">&lt;</span><span class="ex">%</span>= Sys.getenv(<span class="st">&quot;DEBUGME&quot;</span>) <span class="ex">%</span><span class="op">&gt;</span></span>
-<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load gcc</span>
-<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load R</span>
-<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a><span class="ex">Rscript</span> -e <span class="st">&#39;batchtools::doJobCollection(&quot;&lt;%= uri %&gt;&quot;)&#39;</span></span></code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb28-1"><a href="#cb28-1"></a><span class="co">## Default resources can be set in your .batchtools.conf.R by defining the variable</span></span>
+<span id="cb28-2"><a href="#cb28-2"></a><span class="co">## &#39;default.resources&#39; as a named list.</span></span>
+<span id="cb28-3"><a href="#cb28-3"></a></span>
+<span id="cb28-4"><a href="#cb28-4"></a><span class="co">#!/bin/sh</span></span>
+<span id="cb28-5"><a href="#cb28-5"></a><span class="co">#SBATCH --job-name &lt;%= resources$job_name %&gt; ## Name of the job</span></span>
+<span id="cb28-6"><a href="#cb28-6"></a><span class="co">#SBATCH --ntasks &lt;%= resources$n_cpu %&gt; ## number of processes</span></span>
+<span id="cb28-7"><a href="#cb28-7"></a><span class="co">#SBATCH --partition &lt;%= resources$queue %&gt; ## Job queue</span></span>
+<span id="cb28-8"><a href="#cb28-8"></a><span class="co">#SBATCH --qos &lt;%= resources$service %&gt; ## QOS</span></span>
+<span id="cb28-9"><a href="#cb28-9"></a><span class="co">#SBATCH --time &lt;%= resources$walltime %&gt; ## walltime in hh:mm:ss</span></span>
+<span id="cb28-10"><a href="#cb28-10"></a><span class="co">#SBATCH --mem-per-cpu &lt;%=resources$mem_cpu %&gt;   ## min memory per core</span></span>
+<span id="cb28-11"><a href="#cb28-11"></a><span class="co">#SBATCH --nodes &lt;%= resources$nodes %&gt; ##  if 1 put load on one node</span></span>
+<span id="cb28-12"><a href="#cb28-12"></a><span class="co">#SBATCH --output &lt;%= resources$log_file %&gt; ## Output is sent to logfile, stdout + stderr by default</span></span>
+<span id="cb28-13"><a href="#cb28-13"></a></span>
+<span id="cb28-14"><a href="#cb28-14"></a><span class="co">## Export value of DEBUGME environment var to slave</span></span>
+<span id="cb28-15"><a href="#cb28-15"></a><span class="bu">export</span> <span class="va">DEBUGME=</span><span class="op">&lt;</span><span class="ex">%</span>= Sys.getenv(<span class="st">&quot;DEBUGME&quot;</span>) <span class="ex">%</span><span class="op">&gt;</span></span>
+<span id="cb28-16"><a href="#cb28-16"></a></span>
+<span id="cb28-17"><a href="#cb28-17"></a><span class="ex">module</span> load gcc</span>
+<span id="cb28-18"><a href="#cb28-18"></a><span class="ex">module</span> load R</span>
+<span id="cb28-19"><a href="#cb28-19"></a></span>
+<span id="cb28-20"><a href="#cb28-20"></a><span class="ex">Rscript</span> -e <span class="st">&#39;batchtools::doJobCollection(&quot;&lt;%= uri %&gt;&quot;)&#39;</span></span></code></pre></div>
 </div>
 <div id="first-login" class="section level3">
 <h3>2. First login</h3>
 <p><strong>Every package from now on needs to be installed on both the local computer and the HPC!</strong></p>
 <p>The following <code>R</code> code sends every <code>future</code> to the HPC, as specified by the <code>future</code> plan.</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load the packages</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;future.batchtools&quot;</span>)</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;future&quot;</span>)</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;furrr&quot;</span>)</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="co"># now we specify a future topology that fits our HPC</span></span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="co"># login node -&gt; cluster nodes -&gt; core/ multiple cores</span></span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>login <span class="ot">&lt;-</span> <span class="fu">tweak</span>(remote, <span class="at">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="at">user =</span> <span class="st">&quot;user_name_gwdg&quot;</span>) <span class="co"># user = login credential</span></span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>sbatch <span class="ot">&lt;-</span> <span class="fu">tweak</span>(batchtools_slurm, <span class="at">template =</span> <span class="st">&quot;future_slurm.tmpl&quot;</span>,</span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>                <span class="at">resources =</span> <span class="fu">list</span>(<span class="at">job_name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">log_file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></span>
-<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">queue =</span> <span class="st">&quot;medium&quot;</span>, <span class="co"># which partition</span></span>
-<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">service =</span> <span class="st">&quot;short&quot;</span>, <span class="co"># which QOS</span></span>
-<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">walltime =</span> <span class="st">&quot;00:05:00&quot;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></span>
-<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">n_cpu =</span> <span class="dv">12</span>)) <span class="co"># number of cores</span></span>
-<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a><span class="fu">plan</span>(<span class="fu">list</span>(</span>
-<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>  login,</span>
-<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>  sbatch,</span>
-<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>  multisession <span class="co"># how to run on nodes, could also be sequential</span></span>
-<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1"></a><span class="co"># load the packages</span></span>
+<span id="cb29-2"><a href="#cb29-2"></a><span class="kw">library</span>(<span class="st">&quot;future.batchtools&quot;</span>)</span>
+<span id="cb29-3"><a href="#cb29-3"></a><span class="kw">library</span>(<span class="st">&quot;future&quot;</span>)</span>
+<span id="cb29-4"><a href="#cb29-4"></a><span class="kw">library</span>(<span class="st">&quot;furrr&quot;</span>)</span>
+<span id="cb29-5"><a href="#cb29-5"></a></span>
+<span id="cb29-6"><a href="#cb29-6"></a><span class="co"># now we specify a future topology that fits our HPC</span></span>
+<span id="cb29-7"><a href="#cb29-7"></a><span class="co"># login node -&gt; cluster nodes -&gt; core/ multiple cores</span></span>
+<span id="cb29-8"><a href="#cb29-8"></a>login &lt;-<span class="st"> </span><span class="kw">tweak</span>(remote, <span class="dt">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="dt">user =</span> <span class="st">&quot;user_name_gwdg&quot;</span>) <span class="co"># user = login credential</span></span>
+<span id="cb29-9"><a href="#cb29-9"></a></span>
+<span id="cb29-10"><a href="#cb29-10"></a>sbatch &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_slurm, <span class="dt">template =</span> <span class="st">&quot;future_slurm.tmpl&quot;</span>,</span>
+<span id="cb29-11"><a href="#cb29-11"></a>                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job_name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></span>
+<span id="cb29-12"><a href="#cb29-12"></a>                                 <span class="dt">log_file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></span>
+<span id="cb29-13"><a href="#cb29-13"></a>                                 <span class="dt">queue =</span> <span class="st">&quot;medium&quot;</span>, <span class="co"># which partition</span></span>
+<span id="cb29-14"><a href="#cb29-14"></a>                                 <span class="dt">service =</span> <span class="st">&quot;short&quot;</span>, <span class="co"># which QOS</span></span>
+<span id="cb29-15"><a href="#cb29-15"></a>                                 <span class="dt">walltime =</span> <span class="st">&quot;00:05:00&quot;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></span>
+<span id="cb29-16"><a href="#cb29-16"></a>                                 <span class="dt">n_cpu =</span> <span class="dv">12</span>)) <span class="co"># number of cores</span></span>
+<span id="cb29-17"><a href="#cb29-17"></a></span>
+<span id="cb29-18"><a href="#cb29-18"></a><span class="kw">plan</span>(<span class="kw">list</span>(</span>
+<span id="cb29-19"><a href="#cb29-19"></a>  login,</span>
+<span id="cb29-20"><a href="#cb29-20"></a>  sbatch,</span>
+<span id="cb29-21"><a href="#cb29-21"></a>  multisession <span class="co"># how to run on nodes, could also be sequential</span></span>
+<span id="cb29-22"><a href="#cb29-22"></a>))</span></code></pre></div>
 </div>
 <div id="going-down-the-future-topology" class="section level3">
 <h3>3. Going down the future topology</h3>
 <p>Now it’s possible to reach the <strong>first level</strong> of the HPC (frontend). After logging in to <em>gwdu101.gwdg.de</em>, the function <code>Sys.info()</code> is executed on the frontend of the HPC.</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Before we start, despite that we have declared our future plan above,</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co"># we are still working on our local machine if we do not use futures:</span></span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>local_sysinfo <span class="ot">&lt;-</span> <span class="fu">Sys.info</span>()</span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>local_sysinfo</span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co"># To do something on the hpc, we actually have to use a future,</span></span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="co"># in the following example with the future assignment %&lt;-%</span></span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>hpc_sysinfo <span class="sc">%&lt;-%</span> <span class="fu">Sys.info</span>()</span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>hpc_sysinfo</span></code></pre></div>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1"></a><span class="co"># Before we start, despite that we have declared our future plan above,</span></span>
+<span id="cb30-2"><a href="#cb30-2"></a><span class="co"># we are still working on our local machine if we do not use futures:</span></span>
+<span id="cb30-3"><a href="#cb30-3"></a>local_sysinfo &lt;-<span class="st"> </span><span class="kw">Sys.info</span>()</span>
+<span id="cb30-4"><a href="#cb30-4"></a></span>
+<span id="cb30-5"><a href="#cb30-5"></a>local_sysinfo</span>
+<span id="cb30-6"><a href="#cb30-6"></a></span>
+<span id="cb30-7"><a href="#cb30-7"></a><span class="co"># To do something on the hpc, we actually have to use a future,</span></span>
+<span id="cb30-8"><a href="#cb30-8"></a><span class="co"># in the following example with the future assignment %&lt;-%</span></span>
+<span id="cb30-9"><a href="#cb30-9"></a>hpc_sysinfo <span class="op">%&lt;-%</span><span class="st"> </span><span class="kw">Sys.info</span>()</span>
+<span id="cb30-10"><a href="#cb30-10"></a></span>
+<span id="cb30-11"><a href="#cb30-11"></a>hpc_sysinfo</span></code></pre></div>
 <p>The <strong>second level</strong>, the cluster nodes, can be reached with a nested <code>future</code>. The <code>furrr</code> packages allows to use the <code>purrr::map</code>-family as <code>futures</code>. The <code>future</code>-operator <code>%&lt;-%</code> is used to accesses the HPC frontend and <code>future_map</code> to accesses the second level cluster nodes. Because code should never be executed on the frontend, these two nested <code>future</code> levels are always required to submit jobs. The second level also controls the total number of jobs submitted. This becomes very important later for sequential job submission and exclusive jobs with <code>future</code>.</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># do something on the cluster node level</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>hpc_sysinfo_on_nodes  <span class="sc">%&lt;-%</span>  <span class="fu">future_map</span>(<span class="fu">seq_len</span>(<span class="dv">10</span>), <span class="sc">~</span> <span class="fu">Sys.info</span>())</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>hpc_sysinfo_on_nodes</span></code></pre></div>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1"></a><span class="co"># do something on the cluster node level</span></span>
+<span id="cb31-2"><a href="#cb31-2"></a>hpc_sysinfo_on_nodes  <span class="op">%&lt;-%</span><span class="st">  </span><span class="kw">future_map</span>(<span class="kw">seq_len</span>(<span class="dv">10</span>), <span class="op">~</span><span class="st"> </span><span class="kw">Sys.info</span>())</span>
+<span id="cb31-3"><a href="#cb31-3"></a></span>
+<span id="cb31-4"><a href="#cb31-4"></a>hpc_sysinfo_on_nodes</span></code></pre></div>
 <p>The <strong>third level</strong>, the cores on each cluster node, is addressed by the settings specified in the second level. For example, in the second level <code>multisession</code> with <code>processes = 12</code> can specified. This means demanding 12 cores on each cluster node and run the function parallel on each. Hence, the function could run on 12 cores and use the memory every core comes with. Here, the jobs are distributed over 10 nodes that have at least 12 available cores. In total, <code>Sys.info()</code> is executed 10 x 12 times. Therefore, <code>hpc_sysinfo_on_node_cores</code> is a two dimensional list, with 10 elements where each of these has again 12 elements. The 12 elements in each outer dimension of the list should be the same, but differ between the unique outer elements overall.</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># do something on core level of each cluster node</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>hpc_sysinfo_on_node_cores  <span class="sc">%&lt;-%</span>  <span class="fu">future_map</span>(<span class="fu">seq_len</span>(<span class="dv">10</span>), <span class="cf">function</span>(x){</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">future_map</span>(<span class="fu">seq_len</span>(<span class="dv">12</span>), <span class="sc">~</span> <span class="fu">Sys.info</span>())</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>})</span></code></pre></div>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1"></a><span class="co"># do something on core level of each cluster node</span></span>
+<span id="cb32-2"><a href="#cb32-2"></a>hpc_sysinfo_on_node_cores  <span class="op">%&lt;-%</span><span class="st">  </span><span class="kw">future_map</span>(<span class="kw">seq_len</span>(<span class="dv">10</span>), <span class="cf">function</span>(x){</span>
+<span id="cb32-3"><a href="#cb32-3"></a>  <span class="kw">future_map</span>(<span class="kw">seq_len</span>(<span class="dv">12</span>), <span class="op">~</span><span class="st"> </span><span class="kw">Sys.info</span>())</span>
+<span id="cb32-4"><a href="#cb32-4"></a>})</span></code></pre></div>
 </div>
 <div id="submitting-jobs-efficiently" class="section level3">
 <h3>4. Submitting jobs efficiently</h3>
 <p>The <code>future</code> plans are crucial, as they specify how to distribute jobs. Therefore, before submitting jobs to the HPC it is important to ensure that the architecture of the plan and how the code is parallelised match. Otherwise, it may be possible to bypass the scheduling system and drain resources from other users.</p>
 <p>The following code snippet explains how to access specific partitions, set the walltime and design a sequential plan. This setup makes sense if the jobs depend of each other, need a specific chip infrastructure or have memory needs that are only satisfied if whole cluster nodes are blocked and jobs are run there exclusively.</p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># login node -&gt; cluster nodes -&gt; core/ multiple cores</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="co"># there shouldn&#39;t be to much change for the login level of your plan</span></span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="co"># you specify the address of the hpc and your user name</span></span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>login <span class="ot">&lt;-</span> <span class="fu">tweak</span>(remote, <span class="at">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="at">user =</span> <span class="st">&quot;user_name_gwdg&quot;</span>)</span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="co"># the sbatch, or cluster node, level becomes the first stage</span></span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="co"># where you could make adjustment to control you experiment.</span></span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="co"># This tweak fills out the space between the curly brackets</span></span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a><span class="co"># in the future_slurm.tmpl file we created on the HPC.</span></span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="co"># (scroll to the right to read an explanation of every line)</span></span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a>sbatch <span class="ot">&lt;-</span> <span class="fu">tweak</span>(batchtools_slurm, <span class="at">template =</span> <span class="st">&quot;future_slurm.tmpl&quot;</span>,</span>
-<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a>                <span class="at">resources =</span> <span class="fu">list</span>(<span class="at">job_name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></span>
-<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">log_file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></span>
-<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">queue =</span> <span class="st">&quot;medium&quot;</span>, <span class="co"># which partition</span></span>
-<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">service =</span> <span class="st">&quot;short&quot;</span>, <span class="co"># which QOS</span></span>
-<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">walltime =</span> <span class="st">&quot;00:05:00&quot;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></span>
-<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">n_cpu =</span> <span class="dv">12</span>)) <span class="co"># number of cores</span></span>
-<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a><span class="fu">plan</span>(<span class="fu">list</span>(</span>
-<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>  login,</span>
-<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>  sbatch,</span>
-<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a>  multisession <span class="co"># multisession because 12 cores were blocked on the sbatch level</span></span>
-<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1"></a><span class="co"># login node -&gt; cluster nodes -&gt; core/ multiple cores</span></span>
+<span id="cb33-2"><a href="#cb33-2"></a></span>
+<span id="cb33-3"><a href="#cb33-3"></a><span class="co"># there shouldn&#39;t be to much change for the login level of your plan</span></span>
+<span id="cb33-4"><a href="#cb33-4"></a><span class="co"># you specify the address of the hpc and your user name</span></span>
+<span id="cb33-5"><a href="#cb33-5"></a>login &lt;-<span class="st"> </span><span class="kw">tweak</span>(remote, <span class="dt">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="dt">user =</span> <span class="st">&quot;user_name_gwdg&quot;</span>)</span>
+<span id="cb33-6"><a href="#cb33-6"></a></span>
+<span id="cb33-7"><a href="#cb33-7"></a><span class="co"># the sbatch, or cluster node, level becomes the first stage</span></span>
+<span id="cb33-8"><a href="#cb33-8"></a><span class="co"># where you could make adjustment to control you experiment.</span></span>
+<span id="cb33-9"><a href="#cb33-9"></a><span class="co"># This tweak fills out the space between the curly brackets</span></span>
+<span id="cb33-10"><a href="#cb33-10"></a><span class="co"># in the future_slurm.tmpl file we created on the HPC.</span></span>
+<span id="cb33-11"><a href="#cb33-11"></a><span class="co"># (scroll to the right to read an explanation of every line)</span></span>
+<span id="cb33-12"><a href="#cb33-12"></a>sbatch &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_slurm, <span class="dt">template =</span> <span class="st">&quot;future_slurm.tmpl&quot;</span>,</span>
+<span id="cb33-13"><a href="#cb33-13"></a>                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job_name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></span>
+<span id="cb33-14"><a href="#cb33-14"></a>                                 <span class="dt">log_file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></span>
+<span id="cb33-15"><a href="#cb33-15"></a>                                 <span class="dt">queue =</span> <span class="st">&quot;medium&quot;</span>, <span class="co"># which partition</span></span>
+<span id="cb33-16"><a href="#cb33-16"></a>                                 <span class="dt">service =</span> <span class="st">&quot;short&quot;</span>, <span class="co"># which QOS</span></span>
+<span id="cb33-17"><a href="#cb33-17"></a>                                 <span class="dt">walltime =</span> <span class="st">&quot;00:05:00&quot;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></span>
+<span id="cb33-18"><a href="#cb33-18"></a>                                 <span class="dt">n_cpu =</span> <span class="dv">12</span>)) <span class="co"># number of cores</span></span>
+<span id="cb33-19"><a href="#cb33-19"></a></span>
+<span id="cb33-20"><a href="#cb33-20"></a><span class="kw">plan</span>(<span class="kw">list</span>(</span>
+<span id="cb33-21"><a href="#cb33-21"></a>  login,</span>
+<span id="cb33-22"><a href="#cb33-22"></a>  sbatch,</span>
+<span id="cb33-23"><a href="#cb33-23"></a>  multisession <span class="co"># multisession because 12 cores were blocked on the sbatch level</span></span>
+<span id="cb33-24"><a href="#cb33-24"></a>))</span></code></pre></div>
 <p>However, if jobs are independent of each other (e.g. repetitions of the same function) and do not need more memory than one core provides, it makes sense to submit a high number of very small jobs. Instead of blocking a whole node and running the function on all available nodes in parallel (submitted as one job), it is also possible to submit 12 single jobs only demanding one core per job. This has the advantage that the pending time will be decreased enormously. The reason for this is that the jobs will be submitted to any available free slot (1 core) on the cluster. The <strong>SLURM</strong> system automatically schedules these small jobs with a higher priority in order to use the capacities optimally.</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># (scroll to the right to read an explanation of every line)</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>sbatch <span class="ot">&lt;-</span> <span class="fu">tweak</span>(batchtools_slurm, <span class="at">template =</span> <span class="st">&quot;future_slurm.tmpl&quot;</span>,</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>                <span class="at">resources =</span> <span class="fu">list</span>(<span class="at">job_name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">log_file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">queue =</span> <span class="st">&quot;medium&quot;</span>, <span class="co"># which partition</span></span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">service =</span> <span class="st">&quot;short&quot;</span>, <span class="co"># which QOS</span></span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">walltime =</span> <span class="st">&quot;00:05:00&quot;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">n_cpu =</span> <span class="dv">1</span>)) <span class="co"># number of cores</span></span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a><span class="fu">plan</span>(<span class="fu">list</span>(</span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  login,</span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>  sbatch,</span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>  sequential <span class="co"># we need sequential here, so that every job we submit only runs on a single core</span></span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>))</span></code></pre></div>
+<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1"></a><span class="co"># (scroll to the right to read an explanation of every line)</span></span>
+<span id="cb34-2"><a href="#cb34-2"></a>sbatch &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_slurm, <span class="dt">template =</span> <span class="st">&quot;future_slurm.tmpl&quot;</span>,</span>
+<span id="cb34-3"><a href="#cb34-3"></a>                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job_name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></span>
+<span id="cb34-4"><a href="#cb34-4"></a>                                 <span class="dt">log_file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></span>
+<span id="cb34-5"><a href="#cb34-5"></a>                                 <span class="dt">queue =</span> <span class="st">&quot;medium&quot;</span>, <span class="co"># which partition</span></span>
+<span id="cb34-6"><a href="#cb34-6"></a>                                 <span class="dt">service =</span> <span class="st">&quot;short&quot;</span>, <span class="co"># which QOS</span></span>
+<span id="cb34-7"><a href="#cb34-7"></a>                                 <span class="dt">walltime =</span> <span class="st">&quot;00:05:00&quot;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></span>
+<span id="cb34-8"><a href="#cb34-8"></a>                                 <span class="dt">n_cpu =</span> <span class="dv">1</span>)) <span class="co"># number of cores</span></span>
+<span id="cb34-9"><a href="#cb34-9"></a></span>
+<span id="cb34-10"><a href="#cb34-10"></a><span class="kw">plan</span>(<span class="kw">list</span>(</span>
+<span id="cb34-11"><a href="#cb34-11"></a>  login,</span>
+<span id="cb34-12"><a href="#cb34-12"></a>  sbatch,</span>
+<span id="cb34-13"><a href="#cb34-13"></a>  sequential <span class="co"># we need sequential here, so that every job we submit only runs on a single core</span></span>
+<span id="cb34-14"><a href="#cb34-14"></a>))</span></code></pre></div>
 </div>
 <div id="future-folder" class="section level3">
 <h3>5. .future folder</h3>
@@ -476,158 +583,71 @@ code span.ot { color: #007020; }
 <li>More than 10 GB of RAM</li>
 <li>Functions need about 12 hours to run</li>
 </ul>
-<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load the packages</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;future&quot;</span>)</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;furrr&quot;</span>)</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">&quot;tidyverse&quot;</span>)</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="co"># login node -&gt; cluster nodes -&gt; core/ multiple cores</span></span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>login <span class="ot">&lt;-</span> <span class="fu">tweak</span>(remote, <span class="at">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="at">user =</span> <span class="st">&quot;username&quot;</span>)</span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="co"># We submit to the multipurpose queue with a maximum</span></span>
-<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="co"># walltime of 48 hours (we specify 15 so that we</span></span>
-<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a><span class="co"># we are not pending that long).</span></span>
-<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a><span class="co"># We furthermore specify 24 processes, which</span></span>
-<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a><span class="co"># automatically means that we reserve nodes</span></span>
-<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a><span class="co"># exclusively (the maximum number of cores on</span></span>
-<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a><span class="co"># mpi nodes is 24, which means if we say 24</span></span>
-<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a><span class="co"># here we wait until a node is not used by anyone).</span></span>
-<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>sbatch <span class="ot">&lt;-</span> <span class="fu">tweak</span>(batchtools_slurm, <span class="at">template =</span> <span class="st">&quot;future_slurm.tmpl&quot;</span>,</span>
-<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>                <span class="at">resources =</span> <span class="fu">list</span>(<span class="at">job_name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></span>
-<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">log_file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></span>
-<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">queue =</span> <span class="st">&quot;medium&quot;</span>, <span class="co"># which partition</span></span>
-<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">service =</span> <span class="st">&quot;normal&quot;</span>, <span class="co"># which QOS</span></span>
-<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">walltime =</span> <span class="st">&quot;00:15:00&quot;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></span>
-<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a>                                 <span class="at">n_cpu =</span> <span class="dv">12</span>)) <span class="co"># number of cores</span></span>
-<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a><span class="fu">plan</span>(<span class="fu">list</span>(</span>
-<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a>  login,</span>
-<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a>  sbatch,</span>
-<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a>  multisession <span class="co"># Again: multisession to distribute over all the cores</span></span>
-<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a>))</span>
-<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a><span class="co"># let&#39;s create an imaginary data frame to iterate over</span></span>
-<span id="cb24-32"><a href="#cb24-32" aria-hidden="true" tabindex="-1"></a>mydata <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">x =</span> <span class="fu">rnorm</span>(<span class="dv">100</span>), <span class="at">y =</span> <span class="fu">rnorm</span>(<span class="dv">100</span>))</span>
-<span id="cb24-33"><a href="#cb24-33" aria-hidden="true" tabindex="-1"></a>advanced_data <span class="ot">&lt;-</span> <span class="fu">list</span>(mydata, mydata, mydata, mydata, mydata)</span>
-<span id="cb24-34"><a href="#cb24-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-35"><a href="#cb24-35" aria-hidden="true" tabindex="-1"></a>fancy_statistical_model <span class="ot">&lt;-</span> <span class="fu">future_map_dfr</span>(advanced_data, <span class="cf">function</span>(x) {</span>
-<span id="cb24-36"><a href="#cb24-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">future_map_dfr</span>(<span class="fu">seq_len</span>(<span class="fu">ncol</span>(x)), <span class="cf">function</span>(y) {</span>
-<span id="cb24-37"><a href="#cb24-37" aria-hidden="true" tabindex="-1"></a>    single_row <span class="ot">&lt;-</span> x[y, ]</span>
-<span id="cb24-38"><a href="#cb24-38" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tibble</span>(single_row<span class="sc">$</span>x <span class="sc">+</span> single_row<span class="sc">$</span>y)</span>
-<span id="cb24-39"><a href="#cb24-39" aria-hidden="true" tabindex="-1"></a>  }, <span class="at">.id =</span> <span class="st">&quot;y&quot;</span>)</span>
-<span id="cb24-40"><a href="#cb24-40" aria-hidden="true" tabindex="-1"></a>}, <span class="at">.id =</span> <span class="st">&quot;x&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb35"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1"></a><span class="co"># load the packages</span></span>
+<span id="cb35-2"><a href="#cb35-2"></a><span class="kw">library</span>(<span class="st">&quot;future&quot;</span>)</span>
+<span id="cb35-3"><a href="#cb35-3"></a><span class="kw">library</span>(<span class="st">&quot;furrr&quot;</span>)</span>
+<span id="cb35-4"><a href="#cb35-4"></a><span class="kw">library</span>(<span class="st">&quot;tidyverse&quot;</span>)</span>
+<span id="cb35-5"><a href="#cb35-5"></a></span>
+<span id="cb35-6"><a href="#cb35-6"></a><span class="co"># login node -&gt; cluster nodes -&gt; core/ multiple cores</span></span>
+<span id="cb35-7"><a href="#cb35-7"></a>login &lt;-<span class="st"> </span><span class="kw">tweak</span>(remote, <span class="dt">workers =</span> <span class="st">&quot;gwdu101.gwdg.de&quot;</span>, <span class="dt">user =</span> <span class="st">&quot;username&quot;</span>)</span>
+<span id="cb35-8"><a href="#cb35-8"></a></span>
+<span id="cb35-9"><a href="#cb35-9"></a><span class="co"># We submit to the multipurpose queue with a maximum</span></span>
+<span id="cb35-10"><a href="#cb35-10"></a><span class="co"># walltime of 48 hours (we specify 15 so that we</span></span>
+<span id="cb35-11"><a href="#cb35-11"></a><span class="co"># we are not pending that long).</span></span>
+<span id="cb35-12"><a href="#cb35-12"></a><span class="co"># We furthermore specify 24 processes, which</span></span>
+<span id="cb35-13"><a href="#cb35-13"></a><span class="co"># automatically means that we reserve nodes</span></span>
+<span id="cb35-14"><a href="#cb35-14"></a><span class="co"># exclusively (the maximum number of cores on</span></span>
+<span id="cb35-15"><a href="#cb35-15"></a><span class="co"># mpi nodes is 24, which means if we say 24</span></span>
+<span id="cb35-16"><a href="#cb35-16"></a><span class="co"># here we wait until a node is not used by anyone).</span></span>
+<span id="cb35-17"><a href="#cb35-17"></a>sbatch &lt;-<span class="st"> </span><span class="kw">tweak</span>(batchtools_slurm, <span class="dt">template =</span> <span class="st">&quot;future_slurm.tmpl&quot;</span>,</span>
+<span id="cb35-18"><a href="#cb35-18"></a>                <span class="dt">resources =</span> <span class="kw">list</span>(<span class="dt">job_name =</span> <span class="st">&quot;run_hpc&quot;</span>,     <span class="co"># name of the job</span></span>
+<span id="cb35-19"><a href="#cb35-19"></a>                                 <span class="dt">log_file =</span> <span class="st">&quot;run_hpc.log&quot;</span>, <span class="co"># name of log file</span></span>
+<span id="cb35-20"><a href="#cb35-20"></a>                                 <span class="dt">queue =</span> <span class="st">&quot;medium&quot;</span>, <span class="co"># which partition</span></span>
+<span id="cb35-21"><a href="#cb35-21"></a>                                 <span class="dt">service =</span> <span class="st">&quot;normal&quot;</span>, <span class="co"># which QOS</span></span>
+<span id="cb35-22"><a href="#cb35-22"></a>                                 <span class="dt">walltime =</span> <span class="st">&quot;00:15:00&quot;</span>, <span class="co"># walltime &lt;hh:mm:ss&gt;</span></span>
+<span id="cb35-23"><a href="#cb35-23"></a>                                 <span class="dt">n_cpu =</span> <span class="dv">12</span>)) <span class="co"># number of cores</span></span>
+<span id="cb35-24"><a href="#cb35-24"></a></span>
+<span id="cb35-25"><a href="#cb35-25"></a><span class="kw">plan</span>(<span class="kw">list</span>(</span>
+<span id="cb35-26"><a href="#cb35-26"></a>  login,</span>
+<span id="cb35-27"><a href="#cb35-27"></a>  sbatch,</span>
+<span id="cb35-28"><a href="#cb35-28"></a>  multisession <span class="co"># Again: multisession to distribute over all the cores</span></span>
+<span id="cb35-29"><a href="#cb35-29"></a>))</span>
+<span id="cb35-30"><a href="#cb35-30"></a></span>
+<span id="cb35-31"><a href="#cb35-31"></a><span class="co"># let&#39;s create an imaginary data frame to iterate over</span></span>
+<span id="cb35-32"><a href="#cb35-32"></a>mydata &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">x =</span> <span class="kw">rnorm</span>(<span class="dv">100</span>), <span class="dt">y =</span> <span class="kw">rnorm</span>(<span class="dv">100</span>))</span>
+<span id="cb35-33"><a href="#cb35-33"></a>advanced_data &lt;-<span class="st"> </span><span class="kw">list</span>(mydata, mydata, mydata, mydata, mydata)</span>
+<span id="cb35-34"><a href="#cb35-34"></a></span>
+<span id="cb35-35"><a href="#cb35-35"></a>fancy_statistical_model &lt;-<span class="st"> </span><span class="kw">future_map_dfr</span>(advanced_data, <span class="cf">function</span>(x) {</span>
+<span id="cb35-36"><a href="#cb35-36"></a>  <span class="kw">future_map_dfr</span>(<span class="kw">seq_len</span>(<span class="kw">ncol</span>(x)), <span class="cf">function</span>(y) {</span>
+<span id="cb35-37"><a href="#cb35-37"></a>    single_row &lt;-<span class="st"> </span>x[y, ]</span>
+<span id="cb35-38"><a href="#cb35-38"></a>    <span class="kw">tibble</span>(single_row<span class="op">$</span>x <span class="op">+</span><span class="st"> </span>single_row<span class="op">$</span>y)</span>
+<span id="cb35-39"><a href="#cb35-39"></a>  }, <span class="dt">.id =</span> <span class="st">&quot;y&quot;</span>)</span>
+<span id="cb35-40"><a href="#cb35-40"></a>}, <span class="dt">.id =</span> <span class="st">&quot;x&quot;</span>)</span></code></pre></div>
 </div>
-</div>
-<div id="using-the-clustermq-package" class="section level2">
-<h2>Using the clustermq package</h2>
-<p><code>clustermq</code> is another package that allows to submit jobs to the HPC via SSH connector. Compared to <code>future</code> (and “friends”), it has the advantage that it submits job arrays. Instead of gradually sending job after job, as done in the examples before, <code>clustermq</code> sends them all at once. This can be a huge time benefit. However, currently <code>clustermq</code> is only working on <em>Linux</em> and <em>macOS</em></p>
-<p>First, all necessary dependencies need to be installed on the local system if you use <em>Linux</em>. Loading the module <code>zeromq</code> should take care of this on the HPC.</p>
-<div class="sourceCode" id="cb25"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># You can skip this step on Windows and macOS</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install zeromq # Linuxbrew, Homebrew on macOS</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> install zeromq # Conda</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> apt-get install libzmq3-dev <span class="co"># Ubuntu</span></span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> yum install zeromq3-devel <span class="co"># Fedora</span></span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="ex">pacman</span> -S zeromq # Archlinux</span></code></pre></div>
-<p>To use <code>clustermq</code>, it has to be installed on both the local computer and the HPC.</p>
-<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># local pc</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">&quot;mschubert/clustermq&quot;</span>)</span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="co"># HPC</span></span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>withr<span class="sc">::</span><span class="fu">with_libpaths</span>(<span class="st">&quot;/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5&quot;</span>, devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">&quot;mschubert/clustermq&quot;</span>))</span></code></pre></div>
-<p>Afterwards, the local <code>.Rprofile</code> needs to be modified. This can be done with the <code>usethis</code> package.</p>
-<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">edit_r_profile</span>()</span></code></pre></div>
-<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(</span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">clustermq.scheduler =</span> <span class="st">&quot;ssh&quot;</span>,</span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">clustermq.ssh.host =</span> <span class="st">&quot;username_gwdg@gwdu101.gwdg.de&quot;</span>, <span class="co"># use your user and host, obviously</span></span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">clustermq.ssh.log =</span> <span class="st">&quot;~/clustermq_ssh.log&quot;</span> <span class="co"># log for easier debugging</span></span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
-<p>Also the <code>.Rprofile</code> on the HPC (<code>nano .Rprofile</code> in the home directory) needs to be modified.</p>
-<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">clustermq.scheduler =</span> <span class="st">&quot;slurm&quot;</span>,</span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">clustermq.template =</span> <span class="st">&quot;/home/uni08/username/clustermq_slurm.tmpl&quot;</span></span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
-<p>Then, again an template to submit jobs is needed, e.g. <code>nano clustermq_slurm.tmpl</code>. The template submits jobs to the HPC specifying the options the scheduling system uses.</p>
-<div class="sourceCode" id="cb30"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/sh</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --job-name={{ job_name }} # job name</span></span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --array=1-{{ n_jobs }} # number of processes</span></span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --partition={{ queue | medium }} # name of queue </span></span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --qos={{ service | normal }} # which special QOS (short/long)</span></span>
-<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --time={{ walltime | 12:00:00 }} # walltime in hh:mm:ss</span></span>
-<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --cpus-per-task={{ n_cpu | 1 }} # set cores per task </span></span>
-<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --mem-per-cpu={{ mem_cpu | 1024 }} # set min memory per core </span></span>
-<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --nodes={{ nodes | 1 }} # if 1 put load on one node</span></span>
-<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --output={{ log_file | /dev/null }}</span></span>
-<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a><span class="co">#SBATCH --error={{ log_file | /dev/null }}</span></span>
-<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load gcc/7.4.0</span>
-<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load zeromq </span>
-<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load R</span>
-<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a><span class="ex">module</span> load R_GEO</span>
-<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a><span class="bu">ulimit</span> -v <span class="va">$((</span> 1024 * {{ mem_cpu | 1024 }} <span class="va">))</span></span>
-<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a><span class="va">CMQ_AUTH=</span>{<span class="kw">{</span> <span class="ex">auth</span> <span class="kw">}</span>} <span class="ex">R</span> --no-save --no-restore -e <span class="st">&#39;clustermq:::worker(&quot;{{ master }}&quot;)&#39;</span></span></code></pre></div>
-<ol style="list-style-type: decimal">
-<li><h3 id="how-to-use-clustermq">How to use clustermq</h3></li>
-</ol>
-<p><code>clustermq</code> does not rely on plans as <code>future</code>. Submitting jobs becomes as easy as providing a function and a list or vector to iterate over. In the example, for each <code>x = 1...5</code> a single job is submitted to the HPC. Contrastingly, <code>y = 10</code> is hold constant for all submitted jobs. In case user-defined functions are needed, these can be specified by the the <code>export</code> argument of the <code>Q()</code> function. It’s also possible to iterate over rows of a data frame.</p>
-<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(clustermq)</span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>fx <span class="ot">=</span> <span class="cf">function</span>(x, y) x <span class="sc">*</span> <span class="dv">2</span> <span class="sc">+</span> y</span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="fu">Q</span>(fx, <span class="at">x =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>, <span class="at">const =</span> <span class="fu">list</span>(<span class="at">y =</span> <span class="dv">10</span>), <span class="at">n_jobs =</span> <span class="dv">1</span>)</span></code></pre></div>
-<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run a simple multiplication for data frame columns x and y on a worker node</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>fx <span class="ot">=</span> <span class="cf">function</span> (x, y) x <span class="sc">*</span> y</span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>df <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">x =</span> <span class="dv">5</span>, <span class="at">y =</span> <span class="dv">10</span>)</span>
-<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a><span class="fu">Q_rows</span>(df, fx, <span class="at">job_size =</span> <span class="dv">1</span>)</span>
-<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Q_rows also matches the names of a data frame with the function arguments</span></span>
-<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>fx <span class="ot">=</span> <span class="cf">function</span> (x, y) x <span class="sc">-</span> y</span>
-<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>df <span class="ot">=</span> <span class="fu">data.frame</span>(<span class="at">y =</span> <span class="dv">5</span>, <span class="at">x =</span> <span class="dv">10</span>)</span>
-<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a><span class="fu">Q_rows</span>(df, fx, <span class="at">job_size =</span> <span class="dv">1</span>)</span></code></pre></div>
-<p>All parameters within <code>{{ }}</code> in the template file can be specified using a list and the <code>template</code> argument of the <code>Q()</code> function. Therefore, it is very easy to e.g. submit to the short <em>QOS</em> and set the walltime to 5 minutes (<hh:mm:ss>). Of course, additional arguments can be added to the template.</p>
-<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Q</span>(fx, <span class="at">x =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>, <span class="at">const =</span> <span class="fu">list</span>(<span class="at">y =</span> <span class="dv">10</span>), <span class="at">n_jobs =</span> <span class="dv">3</span>, </span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">template =</span> <span class="fu">list</span>(<span class="at">walltime =</span> <span class="st">&quot;00:05:00&quot;</span>, </span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>                  <span class="at">service =</span> <span class="st">&quot;short&quot;</span>))</span></code></pre></div>
 </div>
 <div id="tips-and-tricks" class="section level2">
 <h2>Tips and Tricks</h2>
 <div id="kill-jobsr-sessions" class="section level3">
 <h3>1. Kill jobs/R sessions</h3>
 <p>There is an alias to kill already submitted jobs. In case something goes wrong while submitting jobs, there will be most likely several <code>R</code> sessions that do not close by themselves or are open and keep submitting jobs. A convenient way to kill these processes is to login to the HPC frontend and use the defined alias <code>monitor</code> to enter the process manger <code>htop</code>. With <code>F9</code> it’s possible to select the <code>R</code> processes and kill them. <code>F10</code> closes the process manager afterwards.</p>
-<div class="sourceCode" id="cb34"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="ex">jobs_kill</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="ex">monitor</span></span></code></pre></div>
+<div class="sourceCode" id="cb36"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb36-1"><a href="#cb36-1"></a><span class="ex">jobs_kill</span></span>
+<span id="cb36-2"><a href="#cb36-2"></a><span class="ex">monitor</span></span></code></pre></div>
 </div>
 <div id="better-connection-to-the-hpc" class="section level3">
 <h3>2. Better connection to the HPC</h3>
 <p>One inconvenience is that the connection to HPC from a local <code>R</code> session can not be interrupted. If that happens, jobs are lost (using <code>future</code> there might be chance to collect every result in the <code>.future</code> folder). This also means that running code from a local computer means that it has to be running until everything is finished. When code take several days, this can easily become a problem.</p>
-<p>A way we explored for such cases is to use the <a href="https://www.gwdg.de/de/server-services/gwdg-cloud-server">GWDG Cloud Server</a>. If you install there an instance of RStudio Server, you have a cloud based IDE that you can run from everywhere with access to the internet. By default, the RStudio Server unfortunately breaks the connection every now and then, so you have to tweak it a bit to be permanently accessible. To turn off the suspended session feature, must be specified in a <code>ression.conf</code> file. After the line <code>session-timeout-minutes=0</code> is added to the file, the server must be restarted.</p>
-<div class="sourceCode" id="cb35"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /etc/rstudio</span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="fu">nano</span> rsession.conf <span class="co"># add line session-timeout-minutes=0</span></span></code></pre></div>
-<div class="sourceCode" id="cb36"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="ex">session-timeout-minutes</span>=0</span></code></pre></div>
-<div class="sourceCode" id="cb37"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> rstudio-server restart</span></code></pre></div>
-<p>Also the SSH connection becomes a bit tricky from the server. Therefore, we first need to generate a SSH key pair and copy the public key information to the <code>authorized_keys</code> file on the HPC cluster. Most likely, you have to do this by hand.</p>
-<div class="sourceCode" id="cb38"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh-keygen</span> -t rsa</span></code></pre></div>
-<p>Now, via the terminal of the RStudio Cloud Server, first connect to <code>login.gwdg.de</code>.</p>
-<div class="sourceCode" id="cb39"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> gwdg_username@login.gwdg.de</span></code></pre></div>
-<p>If this works, from the new console connect to <code>gwdu101.gwdg.de</code>.</p>
-<div class="sourceCode" id="cb40"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> gwdg_username@gwdu101.gwdg.de</span></code></pre></div>
-<p>If this works, we can automate the two steps. Navigate to the <code>.ssh/</code> folder of the Cloud Server and create a <code>config</code> file and enter the following.</p>
-<div class="sourceCode" id="cb41"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> .ssh</span>
-<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="fu">nano</span> config</span></code></pre></div>
-<div class="sourceCode" id="cb42"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Host</span> gwdu101.gwdg.de</span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="ex">ProxyCommand</span> ssh gwdg_username@login.gwdg.de -W %h:%p</span>
-<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  <span class="ex">StrictHostKeyChecking</span> no</span>
-<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>  <span class="ex">ServerAliveInterval</span> 30</span></code></pre></div>
-<p>Now you should be able to login from the RStudio Cloud Server Terminal to the HPC directly as usual without any password identification. If so, you should be able to submit jobs to the cluster from the Cloud Server just as from your local machine. If you use <code>clustermq</code>, it’s not possible to logout and login again to the Cloud Server as long as jobs are running on the HPC. So either, you need to keep the browser window open as long as jobs are running on the HPC, or use another (local) terminal to check if still jobs are running and first login again on the Cloud Server once all jobs are finished.</p>
-<p>In case you use another RStudio Server, the only thing you would have to change from the things we explained here is to open a VPN connection to the <em>goenet</em>.</p>
+<p>A way we explored for such cases is to use the <a href="https://www.gwdg.de/de/server-services/gwdg-cloud-server">GWDG Cloud Server</a>. If you install there an instance of RStudio Server (a tutorial with docker is <a href="https://github.com/bitbacchus/rstudio-docker">here</a>), you have a cloud based IDE that you can run from everywhere with access to the internet. By default, the RStudio Server unfortunately breaks the connection every now and then, so you have to tweak it a bit to be permanently accessible. To turn off the suspended session feature, must be specified in a <code>ression.conf</code> file. After the line <code>session-timeout-minutes=0</code> is added to the file, the server must be restarted (TODO: include this into the docker image).</p>
+<div class="sourceCode" id="cb37"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb37-1"><a href="#cb37-1"></a><span class="bu">cd</span> /etc/rstudio</span>
+<span id="cb37-2"><a href="#cb37-2"></a><span class="fu">nano</span> rsession.conf <span class="co"># add line session-timeout-minutes=0</span></span></code></pre></div>
+<div class="sourceCode" id="cb38"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb38-1"><a href="#cb38-1"></a><span class="ex">session-timeout-minutes</span>=0</span></code></pre></div>
+<div class="sourceCode" id="cb39"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb39-1"><a href="#cb39-1"></a><span class="fu">sudo</span> rstudio-server restart</span></code></pre></div>
+<p>The you’ll have to setup ssh as described above.</p>
+<p>Now you should be able to login from the RStudio Cloud Server Terminal to the HPC directly as usual without any password identification. If so, you should be able to submit jobs to the cluster from the Cloud Server just as from your local machine. If you use <code>clustermq</code>, it’s not possible to logout and login again to the Cloud Server as long as jobs are running on the HPC. So either, you need to keep the browser window open as long as jobs are running on the HPC, or better run your R-script with “Source as local job”: <img src="data:image/png;base64,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" alt="Source as local job" /></p>
 </div>
 </div>
 <div id="troubleshooting" class="section level2">
 <h2>Troubleshooting</h2>
-<p>Here, we are going to collect some issue we had during the setup and using the cluster at one point or the other. This issues might be rather specific, but maybe you run into the same problems. Thanks a lot to <a href="https://github.com/nldoc">Jan Salecker</a> who made us aware of the problems and also provided the solutions.</p>
+<p>Here, we are going to collect some issue we had during the setup and using the cluster at one point or the other. This issues might be rather specific, but maybe you run into the same problems.</p>
 <div id="problems-with-the-.rprofile" class="section level3">
 <h3>3.1 Problems with the .Rprofile</h3>
 <p>There was the problem that <code>clustermq</code> kept telling to specify the scheduler, even though the <code>.Rprofile</code> was set up correctly. In this case the problem was that there was no empty, new line at the end of the <code>.Rprofile</code> file.</p>
@@ -635,7 +655,7 @@ code span.ot { color: #007020; }
 <div id="byte-character-sets" class="section level3">
 <h3>3.2 Byte character sets</h3>
 <p>If you use a text editor to create all the template files, it might be possible that hidden characters (e.g. line break commands) are automatically added to the template files. This can also be a problem if you switch between different byte character sets. In case your jobs return errors and you see a lot of e.g. “” in your template files (or any other files), one possible solution is to run the following command in order to convert the file to a unix character set.</p>
-<div class="sourceCode" id="cb43"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="ex">dos2unix</span> myBatchFile</span></code></pre></div>
+<div class="sourceCode" id="cb40"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb40-1"><a href="#cb40-1"></a><span class="ex">dos2unix</span> myBatchFile</span></code></pre></div>
 </div>
 <div id="kill-old-processes" class="section level3">
 <h3>3.3 Kill old processes</h3>
