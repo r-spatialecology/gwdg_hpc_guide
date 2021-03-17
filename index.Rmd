@@ -46,15 +46,30 @@ For older *Windows* versions, [this guide](https://docs.joyent.com/public-cloud/
 
 Once you generated the SSH key, locate the public key (make sure to never share your private key!). The default location of all SSH keys is the .ssh/ folder, which might be hidden. Login to your *GWDG* account, go to "My account" and find "Other Settings". There you can now copy the public key. For more information about connecting via SSH, please see ["CONNECT WITH SSH"](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:connect_with_ssh) by the *GWDG*. 
 
-If the SSH key works, it should be possible to login to the HPC frontend without a password using the following command.
+The HPC's frontend nodes are only accessible from within [GÖNET](https://info.gwdg.de/docs/doku.php?id=en:services:network_services:goenet:start), i.e. either from your office, via VPN or via a proxy: `login.gwdg.de`. To use the proxy, you want to use a [ssh config file](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:connect_with_ssh#saving_the_ssh_configuration) like this:
 
 ```{bash eval = FALSE}
-ssh gwdg_username@gwdu101.gwdg.de
+host gwdg-login #can be any name you want
+  hostname login.gwdg.de
+  user <gwdg_username>
+  IdentityFile ~/.ssh/<yourkey>
+ 
+host hpc-gwdg 
+  hostname gwdu102 # or gwdu101 or gwdu103
+  user <gwdg_username>
+  IdentityFile ~/.ssh/<yourkey>
+  ProxyJump gwdg-login
+```
+
+In the following we assume that ssh is set up with keys and config file and you are able to connect to the hpc with the following command:
+
+```{bash eval = FALSE}
+ssh hpc-gwdg
 ```
 
 ### 3. Create .profile
 
-Because `.bashrc` is not source by Scientific Linux by default ([source](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:bashrc)), firstly a `.profile` file is created. The following code enables that `.bashrc` is sourced every time the HPC is accessed.
+Because `.bashrc` is not sourced by Scientific Linux by default ([source](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:bashrc)), firstly a `.profile` file is created. The following code enables that `.bashrc` is sourced every time the HPC is accessed.
 
 ```{bash eval = FALSE}
 nano .profile
@@ -128,13 +143,16 @@ alias ls='ls -l'
 alias lsa='ls -l -a'
 ```
 
-To be able to automatically import modules, `.bash_modules` (again, using `nano`) needs to be created. Modules provide a way to selectively activate and deactivate modifications to the user environment. This allows particular packages and versions to be found. First, the *GNU* compiler `gcc` is loaded. Second, the messaging library `zeromq` is loaded and used later to submit jobs to the HPC. The `R` module makes sure that always the most recent `R` version is used. Additionally, it's possible to load any module which is needed (to see all available modules, use `module available`), such as e.g. `R_GEO` which allows to load certain spatial packages in `R` later.
+Software on the hpc is [organized with `modules` and `spack`](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:spack_and_modulefiles). Modules provide a way to selectively load and unload pre-installed software to the user environment. To see all available modules, use `module available`. `Spack` allows the users to install and load additional software from th [Spack repository](https://spack.readthedocs.io/en/latest/package_list.html).
+
+To be able to automatically import modules, `.bash_modules` (again, using `nano`) needs to be created. Mine looks like this:
 
 ```{bash eval = FALSE}
-module load gcc/7.4.0
-module load zeromq
-module load R
-module load R_GEO
+module load r
+module load spack-user
+# Enabling Spack Shell Support
+. /opt/sw/rev/20.12/haswell/gcc-9.3.0/spack-user-0.16.0-qbaee6/share/spack/setup-env.sh
+spack load libzmq
 ```
 
 ### 5. Try to run `R` on the HPC
@@ -142,18 +160,18 @@ module load R_GEO
 If the previous steps all worked out, it should be possible to login to HPC without typing a password. If so, using `R` should be no problem now. The following command logs in to the HPC frontend and starts a `R` terminal.
 
 ```{bash eval = FALSE}
-ssh gwdg_username@gwdu101.gwdg.de
+ssh hpc-gwdg
 R
 ```
 
 ## *GWDG* HPC infrastructure
 
-The HPC infrastructure is mostly accessible through partitions (formerly queues). A full overview can be found here: [High-Performance Computing in Göttingen (outdated)](http://hpc.gwdg.de/systems.html). There are two general base partitions that are of interest.
+The HPC infrastructure is mostly accessible through partitions (formerly queues). A full overview can be found here: [High Performance Computing](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:start). There are two general base partitions that are of interest.
 
-* **medium** - lots of cores, fewer memory, short pending time (formerly MPI)
+* **medium** - lots of cores, fewer memory, short pending time
 * **fat** - fewer cores, lots of memory, long pending time
 
-Both partitions have additional a "quality of service" (QOS), i.e. "normal", "short" and "long" (formerly appended using "-"). This refers to the maximum walltime a job can run on the HPC. Of course this also relates to possible pending times. Generally, the possible pending time might be longer in the "long" QOS. However, once a job is running, it's also allowed to use the partition longer.
+Both partitions have additional a ["quality of service" (QOS)](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:running_jobs_slurm#runtime_limits_qos), i.e. "normal", "short" and "long". This refers to the maximum walltime a job can run on the HPC. Of course this also relates to possible pending times. Generally, the possible pending time might be longer in the "long" QOS. However, once a job is running, it's also allowed to use the partition longer. "short" is intended for testing and development, not for massive production.
 
 There is a maximum number of jobs that can be submitted, as well as a maximum of simultaneously running jobs. The following command allows to check the limits on the HPC. The default is a submission of maximum 5000 jobs at a time and 1000 jobs running simultaneously.
 
@@ -232,7 +250,138 @@ withr::with_libpaths(new = "/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-lib
                      code = devtools::install_github("r-spatialecogy/landscapemetrics")
 ```
 
+## Using the clustermq package (currently our preferred way)
+
+`clustermq` is a package that allows to submit jobs to the HPC via SSH connector. Compared to `future` (see below), it has the advantage that it submits job arrays. Instead of gradually sending job after job, as done in the examples before, `clustermq` sends them all at once. This can be a huge time benefit. However, currently `clustermq` is only working on *Linux* and *macOS* (see [#84](https://github.com/mschubert/clustermq/issues/84), [#238](https://github.com/mschubert/clustermq/issues/238)).
+
+First, all necessary dependencies need to be installed on the local system if you use *Linux*. 
+
+```{bash eval=FALSE}
+# You can skip this step on Windows and macOS
+brew install zeromq # Linuxbrew, Homebrew on macOS
+conda install zeromq # Conda
+sudo apt-get install libzmq3-dev # Ubuntu
+sudo yum install zeromq3-devel # Fedora
+pacman -S zeromq # Archlinux
+```
+
+To use `clustermq`, it has to be installed on both the local computer and the HPC. To install `clustermq` on the HPC first install the library `libzmq`:
+
+```{bash eval = FALSE}
+# first unload all compiler modules, otherwise Spack might be confused with different versions
+module purge gcc 
+
+# the Spack module is needed
+module load spack-user
+
+# Enabling Spack shell support for loading spack modules
+. /opt/sw/rev/20.12/haswell/gcc-9.3.0/spack-user-0.16.0-qbaee6/share/spack/setup-env.sh
+
+# install and load libzmq
+spack install libzmq
+spack load libzmq
+```
+
+Then load the R module (`module load r`), open an R Terminal with the command `R` and use `install.packages("clustermq")` **Note**: do *not* install the github version with `remotes::install_github('mschubert/clustermq')` until issue [`#223`](https://github.com/mschubert/clustermq/issues/223) is solved. 
+
+Afterwards, the local `.Rprofile` needs to be modified. This can be done with the `usethis` package.
+
+```{r eval=FALSE}
+usethis::edit_r_profile()
+```
+
+```{r eval=FALSE}
+options(
+    clustermq.scheduler = "ssh",
+    clustermq.ssh.host = "gwdg-hpc", # use your user and host, obviously
+    clustermq.ssh.log = "~/clustermq_ssh.log" # log for easier debugging
+)
+```
+
+Also the `.Rprofile` on the HPC (`nano .Rprofile` in the home directory) needs to be modified.
+
+```{r eval=FALSE}
+options(
+    clustermq.scheduler = "slurm",
+    clustermq.template = "/usr/users/username/clustermq_slurm.tmpl"
+)
+```
+
+Then, again an template to submit jobs is needed, e.g. `nano clustermq_slurm.tmpl`. The template submits jobs to the HPC specifying the options the scheduling system uses.
+
+```{bash eval=FALSE}
+#!/bin/sh
+#SBATCH --job-name={{ job_name }} # job name
+#SBATCH --array=1-{{ n_jobs }} # number of processes
+#SBATCH --partition={{ queue | medium }} # name of queue 
+#SBATCH --qos={{ service | normal }} # which special QOS (short/long)
+#SBATCH --time={{ walltime | 12:00:00 }} # walltime in hh:mm:ss
+#SBATCH --cpus-per-task={{ n_cpu | 1 }} # set cores per task 
+#SBATCH --mem-per-cpu={{ mem_cpu | 1024 }} # set min memory per core 
+#SBATCH --nodes={{ nodes | 1 }} # if 1 put load on one node
+#SBATCH --output={{ log_file | /dev/null }}
+#SBATCH --error={{ log_file | /dev/null }}
+
+ulimit -v $(( 1024 * {{ mem_cpu | 1024 }} ))
+CMQ_AUTH={{ auth }} R --no-save --no-restore -e 'clustermq:::worker("{{ master }}")'
+```
+
+1. ### How to use clustermq
+
+`clustermq` does not rely on plans as `future`. Submitting jobs becomes as easy as providing a function and a list or vector to iterate over. In the example, for each `x = 1...5` a single job is submitted to the HPC. Contrastingly, `y = 10` is hold constant for all submitted jobs. In case user-defined functions are needed, these can be specified by the the `export` argument of the `Q()` function. It's also possible to iterate over rows of a data frame.
+
+```{r eval=FALSE}
+library(clustermq)
+
+fx = function(x, y) x * 2 + y
+Q(fx, x = 1:5, const = list(y = 10), n_jobs = 1)
+```
+
+```{r eval=FALSE}
+# Run a simple multiplication for data frame columns x and y on a worker node
+fx = function (x, y) x * y
+
+df = data.frame(x = 5, y = 10)
+
+Q_rows(df, fx, job_size = 1)
+
+# Q_rows also matches the names of a data frame with the function arguments
+fx = function (x, y) x - y
+
+df = data.frame(y = 5, x = 10)
+
+Q_rows(df, fx, job_size = 1)
+```
+
+All parameters within ``{{ }}`` in the template file can be specified using a list and the `template` argument of the `Q()` function. Therefore, it is very easy to e.g. submit to the short *QOS* and set the walltime to 5 minutes (<hh:mm:ss>). Of course, additional arguments can be added to the template.
+
+```{r eval=FALSE}
+Q(fx, x = 1:3, const = list(y = 10), n_jobs = 3, 
+  template = list(walltime = "00:05:00", 
+                  service = "short"))
+```
+
+
+## Using R-Scripts
+
+You can run R-Scripts with the `sbatch` command directly from the HPC frontend node. You can add the #SBATCH options to the top of your R script and submit it with sbatch. Slurm will take any script
+e.g. 
+
+```{r eval = FALSE}
+#!/usr/bin/env Rscript
+#SBATCH -n 4
+#SBATCH -o rtest.out
+
+test = c('test2','test1')
+test
+system("hostname")
+```
+
+That will work with `sbatch <scriptname>` as long as you loaded the R module.
+
 ## Using the future package
+
+This used to be our preffered way, but `clustermq` is just more stable to use. This guide might therefore a bit dated.
 
 One of the ways to use the *GWDG* HPC is the `future` package and framework. The advantage of `future` is that code can be run on the HPC with only minor changes. Furthermore, specifying how  to parallelise the `R` code is straightforward, as to control how to distribute jobs over nodes and cores. A [basic knowledge](https://github.com/HenrikBengtsson/future) of `future` is advised.
 
@@ -440,112 +589,6 @@ fancy_statistical_model <- future_map_dfr(advanced_data, function(x) {
 }, .id = "x")
 ```
 
-## Using the clustermq package
-
-`clustermq` is another package that allows to submit jobs to the HPC via SSH connector. Compared to `future` (and "friends"), it has the advantage that it submits job arrays. Instead of gradually sending job after job, as done in the examples before, `clustermq` sends them all at once. This can be a huge time benefit. However, currently `clustermq` is only working on *Linux* and *macOS*
-
-First, all necessary dependencies need to be installed on the local system if you use *Linux*. Loading the module `zeromq` should take care of this on the HPC.
-
-```{bash eval=FALSE}
-# You can skip this step on Windows and macOS
-brew install zeromq # Linuxbrew, Homebrew on macOS
-conda install zeromq # Conda
-sudo apt-get install libzmq3-dev # Ubuntu
-sudo yum install zeromq3-devel # Fedora
-pacman -S zeromq # Archlinux
-```
-
-To use `clustermq`, it has to be installed on both the local computer and the HPC.
-
-```{r eval=FALSE}
-# local pc
-devtools::install_github("mschubert/clustermq")
-
-# HPC
-withr::with_libpaths("/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5", devtools::install_github("mschubert/clustermq"))
-```
-
-Afterwards, the local `.Rprofile` needs to be modified. This can be done with the `usethis` package.
-
-```{r eval=FALSE}
-edit_r_profile()
-```
-
-```{r eval=FALSE}
-options(
-    clustermq.scheduler = "ssh",
-    clustermq.ssh.host = "username_gwdg@gwdu101.gwdg.de", # use your user and host, obviously
-    clustermq.ssh.log = "~/clustermq_ssh.log" # log for easier debugging
-)
-```
-
-Also the `.Rprofile` on the HPC (`nano .Rprofile` in the home directory) needs to be modified.
-
-```{r eval=FALSE}
-options(
-    clustermq.scheduler = "slurm",
-    clustermq.template = "/home/uni08/username/clustermq_slurm.tmpl"
-)
-```
-
-Then, again an template to submit jobs is needed, e.g. `nano clustermq_slurm.tmpl`. The template submits jobs to the HPC specifying the options the scheduling system uses.
-
-```{bash eval=FALSE}
-#!/bin/sh
-#SBATCH --job-name={{ job_name }} # job name
-#SBATCH --array=1-{{ n_jobs }} # number of processes
-#SBATCH --partition={{ queue | medium }} # name of queue 
-#SBATCH --qos={{ service | normal }} # which special QOS (short/long)
-#SBATCH --time={{ walltime | 12:00:00 }} # walltime in hh:mm:ss
-#SBATCH --cpus-per-task={{ n_cpu | 1 }} # set cores per task 
-#SBATCH --mem-per-cpu={{ mem_cpu | 1024 }} # set min memory per core 
-#SBATCH --nodes={{ nodes | 1 }} # if 1 put load on one node
-#SBATCH --output={{ log_file | /dev/null }}
-#SBATCH --error={{ log_file | /dev/null }}
-
-module load gcc/7.4.0
-module load zeromq 
-module load R
-module load R_GEO
-
-ulimit -v $(( 1024 * {{ mem_cpu | 1024 }} ))
-CMQ_AUTH={{ auth }} R --no-save --no-restore -e 'clustermq:::worker("{{ master }}")'
-```
-
-1. ### How to use clustermq
-
-`clustermq` does not rely on plans as `future`. Submitting jobs becomes as easy as providing a function and a list or vector to iterate over. In the example, for each `x = 1...5` a single job is submitted to the HPC. Contrastingly, `y = 10` is hold constant for all submitted jobs. In case user-defined functions are needed, these can be specified by the the `export` argument of the `Q()` function. It's also possible to iterate over rows of a data frame.
-
-```{r eval=FALSE}
-library(clustermq)
-
-fx = function(x, y) x * 2 + y
-Q(fx, x = 1:5, const = list(y = 10), n_jobs = 1)
-```
-
-```{r eval=FALSE}
-# Run a simple multiplication for data frame columns x and y on a worker node
-fx = function (x, y) x * y
-
-df = data.frame(x = 5, y = 10)
-
-Q_rows(df, fx, job_size = 1)
-
-# Q_rows also matches the names of a data frame with the function arguments
-fx = function (x, y) x - y
-
-df = data.frame(y = 5, x = 10)
-
-Q_rows(df, fx, job_size = 1)
-```
-
-All parameters within ``{{ }}`` in the template file can be specified using a list and the `template` argument of the `Q()` function. Therefore, it is very easy to e.g. submit to the short *QOS* and set the walltime to 5 minutes (<hh:mm:ss>). Of course, additional arguments can be added to the template.
-
-```{r eval=FALSE}
-Q(fx, x = 1:3, const = list(y = 10), n_jobs = 3, 
-  template = list(walltime = "00:05:00", 
-                  service = "short"))
-```
 
 ## Tips and Tricks
 
@@ -562,7 +605,7 @@ monitor
 
 One inconvenience is that the connection to HPC from a local `R` session can not be interrupted. If that happens, jobs are lost (using `future` there might be chance to collect every result in the `.future` folder). This also means that running code from a local computer means that it has to be running until everything is finished. When code take several days, this can easily become a problem.
 
-A way we explored for such cases is to use the [GWDG Cloud Server](https://www.gwdg.de/de/server-services/gwdg-cloud-server). If you install there an instance of RStudio Server, you have a cloud based IDE that you can run from everywhere with access to the internet. By default, the RStudio Server unfortunately breaks the connection every now and then, so you have to tweak it a bit to be permanently accessible. To turn off the suspended session feature, must be specified in a `ression.conf` file. After the line `session-timeout-minutes=0` is added to the file, the server must be restarted.
+A way we explored for such cases is to use the [GWDG Cloud Server](https://www.gwdg.de/de/server-services/gwdg-cloud-server). If you install there an instance of RStudio Server (a tutorial with docker is [here](https://github.com/bitbacchus/rstudio-docker)), you have a cloud based IDE that you can run from everywhere with access to the internet. By default, the RStudio Server unfortunately breaks the connection every now and then, so you have to tweak it a bit to be permanently accessible. To turn off the suspended session feature, must be specified in a `ression.conf` file. After the line `session-timeout-minutes=0` is added to the file, the server must be restarted (TODO: include this into the docker image).
 
 ```{bash eval = FALSE}
 cd /etc/rstudio
@@ -577,41 +620,9 @@ session-timeout-minutes=0
 sudo rstudio-server restart
 ```
 
-Also the SSH connection becomes a bit tricky from the server. Therefore, we first need to generate a SSH key pair and copy the public key information to the `authorized_keys` file on the HPC cluster. Most likely, you have to do this by hand.
+The you'll have to setup ssh as described above.
 
-```{bash eval = FALSE}
-ssh-keygen -t rsa
-```
-
-Now, via the terminal of the RStudio Cloud Server, first connect to `login.gwdg.de`.
-
-```{bash eval = FALSE}
-ssh gwdg_username@login.gwdg.de
-```
-
-If this works, from the new console connect to `gwdu101.gwdg.de`.
-
-```{bash eval = FALSE}
-ssh gwdg_username@gwdu101.gwdg.de
-```
-
-If this works, we can automate the two steps. Navigate to the `.ssh/` folder of the Cloud Server and create a `config` file and enter the following.
-
-```{bash eval = FALSE}
-cd .ssh
-nano config
-```
-
-```{bash eval = FALSE}
-Host gwdu101.gwdg.de
-  ProxyCommand ssh gwdg_username@login.gwdg.de -W %h:%p
-  StrictHostKeyChecking no
-  ServerAliveInterval 30
-```
-
-Now you should be able to login from the RStudio Cloud Server Terminal to the HPC directly as usual without any password identification. If so, you should be able to submit jobs to the cluster from the Cloud Server just as from your local machine. If you use `clustermq`, it's not possible to logout and login again to the Cloud Server as long as jobs are running on the HPC. So either, you need to keep the browser window open as long as jobs are running on the HPC, or use another (local) terminal to check if still jobs are running and first login again on the Cloud Server once all jobs are finished.
-
-In case you use another RStudio Server, the only thing you would have to change from the things we explained here is to open a VPN connection to the *goenet*.
+Now you should be able to login from the RStudio Cloud Server Terminal to the HPC directly as usual without any password identification. If so, you should be able to submit jobs to the cluster from the Cloud Server just as from your local machine. If you use `clustermq`, it's not possible to logout and login again to the Cloud Server as long as jobs are running on the HPC. So either, you need to keep the browser window open as long as jobs are running on the HPC, or better run your R-script with "Source as local job":  ![Source as local job](images/source_local_job.png)
 
 ## Troubleshooting
 
