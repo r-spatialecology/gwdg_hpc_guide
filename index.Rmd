@@ -626,7 +626,7 @@ Now you should be able to login from the RStudio Cloud Server Terminal to the HP
 
 ## Troubleshooting
 
-Here, we are going to collect some issue we had during the setup and using the cluster at one point or the other. This issues might be rather specific, but maybe you run into the same problems. Thanks a lot to [Jan Salecker](https://github.com/nldoc) who made us aware of the problems and also provided the solutions.
+Here, we are going to collect some issue we had during the setup and using the cluster at one point or the other. This issues might be rather specific, but maybe you run into the same problems.
 
 ### 3.1 Problems with the .Rprofile
 There was the problem that `clustermq` kept telling to specify the scheduler, even though the `.Rprofile` was set up correctly. In this case the problem was that there was no empty, new line at the end of the `.Rprofile` file.
