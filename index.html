@@ -387,8 +387,9 @@ code span.ot { color: #007020; }
 <div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1"></a><span class="kw">options</span>(</span>
 <span id="cb21-2"><a href="#cb21-2"></a>    <span class="dt">clustermq.scheduler =</span> <span class="st">&quot;ssh&quot;</span>,</span>
 <span id="cb21-3"><a href="#cb21-3"></a>    <span class="dt">clustermq.ssh.host =</span> <span class="st">&quot;gwdg-hpc&quot;</span>, <span class="co"># use your user and host, obviously</span></span>
-<span id="cb21-4"><a href="#cb21-4"></a>    <span class="dt">clustermq.ssh.log =</span> <span class="st">&quot;~/clustermq_ssh.log&quot;</span> <span class="co"># log for easier debugging</span></span>
-<span id="cb21-5"><a href="#cb21-5"></a>)</span></code></pre></div>
+<span id="cb21-4"><a href="#cb21-4"></a>    <span class="dt">clustermq.ssh.log =</span> <span class="st">&quot;~/clustermq_ssh.log&quot;</span>, <span class="co"># log for easier debugging</span></span>
+<span id="cb21-5"><a href="#cb21-5"></a>    <span class="dt">clustermq.ssh.timeout =</span> <span class="dv">30</span> <span class="co"># in s, spack load in your .bashrc takes some time</span></span>
+<span id="cb21-6"><a href="#cb21-6"></a>)</span></code></pre></div>
 <p>Also the <code>.Rprofile</code> on the HPC (<code>nano .Rprofile</code> in the home directory) needs to be modified.</p>
 <div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1"></a><span class="kw">options</span>(</span>
 <span id="cb22-2"><a href="#cb22-2"></a>    <span class="dt">clustermq.scheduler =</span> <span class="st">&quot;slurm&quot;</span>,</span>

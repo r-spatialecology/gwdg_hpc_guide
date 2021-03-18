@@ -296,7 +296,8 @@ usethis::edit_r_profile()
 options(
     clustermq.scheduler = "ssh",
     clustermq.ssh.host = "gwdg-hpc", # use your user and host, obviously
-    clustermq.ssh.log = "~/clustermq_ssh.log" # log for easier debugging
+    clustermq.ssh.log = "~/clustermq_ssh.log", # log for easier debugging
+    clustermq.ssh.timeout = 30 # in s, spack load in your .bashrc takes some time
 )
 ```
 
