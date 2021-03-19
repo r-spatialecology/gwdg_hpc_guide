@@ -150,7 +150,7 @@ To be able to automatically import modules, `.bash_modules` (again, using `nano`
 module load r
 module load spack-user
 # Enabling Spack Shell Support
-. /opt/sw/rev/20.12/haswell/gcc-9.3.0/spack-user-0.16.0-qbaee6/share/spack/setup-env.sh
+source $SPACK_USER_ROOT/share/spack/setup-env.sh
 spack load libzmq
 ```
 
