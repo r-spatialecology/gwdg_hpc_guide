@@ -6,11 +6,10 @@ author:
 - Jan Salecker
 - Sebastian Hanß
 output:
- prettydoc::html_pretty:
+ html_document:
    toc: true
    toc_depth: 2
-   theme: architect
-   highlight: github
+   toc_float: true
 ---
 
 ```{r setup, include=FALSE}
