@@ -50,12 +50,12 @@ The HPC's frontend nodes are only accessible from within [GÖNET](https://info.g
 ```{bash eval = FALSE}
 host gwdg-login #can be any name you want
   hostname login.gwdg.de
-  user <gwdg_username>
+  user <*YOUR_USERNAME*>
   IdentityFile ~/.ssh/<yourkey>
  
 host hpc-gwdg 
   hostname gwdu102 # or gwdu101 or gwdu103
-  user <gwdg_username>
+  user <*YOUR_USERNAME*>
   IdentityFile ~/.ssh/<yourkey>
   ProxyJump gwdg-login
 ```
@@ -245,7 +245,7 @@ install.packages("withr")
 # and look for your .libPath
 .libPaths()
 
-withr::with_libpaths(new = "/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5",
+withr::with_libpaths(new = "/usr/users/*YOUR_USERNAME*/R/x86_64-pc-linux-gnu-library/3.5",
                      code = devtools::install_github("r-spatialecogy/landscapemetrics")
 ```
 
@@ -305,7 +305,7 @@ Also the `.Rprofile` on the HPC (`nano .Rprofile` in the home directory) needs t
 ```{r eval=FALSE}
 options(
     clustermq.scheduler = "slurm",
-    clustermq.template = "/usr/users/username/clustermq_slurm.tmpl"
+    clustermq.template = "/usr/users/*YOUR_USERNAME*/clustermq_slurm.tmpl"
 )
 ```
 
@@ -429,7 +429,7 @@ library("furrr")
 
 # now we specify a future topology that fits our HPC
 # login node -> cluster nodes -> core/ multiple cores
-login <- tweak(remote, workers = "gwdu101.gwdg.de", user = "user_name_gwdg") # user = login credential
+login <- tweak(remote, workers = "gwdu101.gwdg.de", user = "*YOUR_USERNAME*") # user = login credential
 
 sbatch <- tweak(batchtools_slurm, template = "future_slurm.tmpl",
                 resources = list(job_name = "run_hpc",     # name of the job
@@ -493,7 +493,7 @@ The following code snippet explains how to access specific partitions, set the w
 
 # there shouldn't be to much change for the login level of your plan
 # you specify the address of the hpc and your user name
-login <- tweak(remote, workers = "gwdu101.gwdg.de", user = "user_name_gwdg")
+login <- tweak(remote, workers = "gwdu101.gwdg.de", user = "*YOUR_USERNAME*")
 
 # the sbatch, or cluster node, level becomes the first stage
 # where you could make adjustment to control you experiment.
@@ -555,7 +555,7 @@ library("furrr")
 library("tidyverse")
 
 # login node -> cluster nodes -> core/ multiple cores
-login <- tweak(remote, workers = "gwdu101.gwdg.de", user = "username")
+login <- tweak(remote, workers = "gwdu101.gwdg.de", user = "*YOUR_USERNAME*")
 
 # We submit to the multipurpose queue with a maximum
 # walltime of 48 hours (we specify 15 so that we

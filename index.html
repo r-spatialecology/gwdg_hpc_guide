@@ -1531,12 +1531,12 @@ div.tocify {
 <p>The HPC’s frontend nodes are only accessible from within <a href="https://info.gwdg.de/docs/doku.php?id=en:services:network_services:goenet:start">GÖNET</a>, i.e. either from your office, via VPN or via a proxy: <code>login.gwdg.de</code>. To use the proxy, you want to use a <a href="https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:connect_with_ssh#saving_the_ssh_configuration">ssh config file</a> like this:</p>
 <pre class="bash"><code>host gwdg-login #can be any name you want
   hostname login.gwdg.de
-  user &lt;gwdg_username&gt;
+  user &lt;*YOUR_USERNAME*&gt;
   IdentityFile ~/.ssh/&lt;yourkey&gt;
  
 host hpc-gwdg 
   hostname gwdu102 # or gwdu101 or gwdu103
-  user &lt;gwdg_username&gt;
+  user &lt;*YOUR_USERNAME*&gt;
   IdentityFile ~/.ssh/&lt;yourkey&gt;
   ProxyJump gwdg-login</code></pre>
 <p>In the following we assume that ssh is set up with keys and config file and you are able to connect to the hpc with the following command:</p>
@@ -1673,7 +1673,7 @@ install.packages(&quot;withr&quot;)
 # and look for your .libPath
 .libPaths()
 
-withr::with_libpaths(new = &quot;/home/uni08/user_name_gwdg/R/x86_64-pc-linux-gnu-library/3.5&quot;,
+withr::with_libpaths(new = &quot;/usr/users/*YOUR_USERNAME*/R/x86_64-pc-linux-gnu-library/3.5&quot;,
                      code = devtools::install_github(&quot;r-spatialecogy/landscapemetrics&quot;)</code></pre>
 </div>
 <div id="using-the-clustermq-package-currently-our-preferred-way" class="section level2">
@@ -1712,7 +1712,7 @@ spack load libzmq</code></pre>
 <p>Also the <code>.Rprofile</code> on the HPC (<code>nano .Rprofile</code> in the home directory) needs to be modified.</p>
 <pre class="r"><code>options(
     clustermq.scheduler = &quot;slurm&quot;,
-    clustermq.template = &quot;/usr/users/username/clustermq_slurm.tmpl&quot;
+    clustermq.template = &quot;/usr/users/*YOUR_USERNAME*/clustermq_slurm.tmpl&quot;
 )</code></pre>
 <p>Then, again an template to submit jobs is needed, e.g. <code>nano clustermq_slurm.tmpl</code>. The template submits jobs to the HPC specifying the options the scheduling system uses.</p>
 <pre class="bash"><code>#!/bin/sh
@@ -1806,7 +1806,7 @@ library(&quot;furrr&quot;)
 
 # now we specify a future topology that fits our HPC
 # login node -&gt; cluster nodes -&gt; core/ multiple cores
-login &lt;- tweak(remote, workers = &quot;gwdu101.gwdg.de&quot;, user = &quot;user_name_gwdg&quot;) # user = login credential
+login &lt;- tweak(remote, workers = &quot;gwdu101.gwdg.de&quot;, user = &quot;*YOUR_USERNAME*&quot;) # user = login credential
 
 sbatch &lt;- tweak(batchtools_slurm, template = &quot;future_slurm.tmpl&quot;,
                 resources = list(job_name = &quot;run_hpc&quot;,     # name of the job
@@ -1855,7 +1855,7 @@ hpc_sysinfo_on_node_cores  %&lt;-%  future_map(seq_len(10), function(x){
 
 # there shouldn&#39;t be to much change for the login level of your plan
 # you specify the address of the hpc and your user name
-login &lt;- tweak(remote, workers = &quot;gwdu101.gwdg.de&quot;, user = &quot;user_name_gwdg&quot;)
+login &lt;- tweak(remote, workers = &quot;gwdu101.gwdg.de&quot;, user = &quot;*YOUR_USERNAME*&quot;)
 
 # the sbatch, or cluster node, level becomes the first stage
 # where you could make adjustment to control you experiment.
@@ -1910,7 +1910,7 @@ library(&quot;furrr&quot;)
 library(&quot;tidyverse&quot;)
 
 # login node -&gt; cluster nodes -&gt; core/ multiple cores
-login &lt;- tweak(remote, workers = &quot;gwdu101.gwdg.de&quot;, user = &quot;username&quot;)
+login &lt;- tweak(remote, workers = &quot;gwdu101.gwdg.de&quot;, user = &quot;*YOUR_USERNAME*&quot;)
 
 # We submit to the multipurpose queue with a maximum
 # walltime of 48 hours (we specify 15 so that we
