@@ -421,8 +421,72 @@ install.packages(&quot;withr&quot;)
 withr::with_libpaths(new = &quot;/usr/users/*YOUR_USERNAME*/R/x86_64-pc-linux-gnu-library/3.5&quot;,
                      code = devtools::install_github(&quot;r-spatialecogy/landscapemetrics&quot;)</code></pre>
 </div>
-<div id="using-the-clustermq-package-currently-our-preferred-way" class="section level2">
-<h2>Using the clustermq package (currently our preferred way)</h2>
+<div id="using-the-rslurm-package" class="section level2">
+<h2>Using the rslurm package</h2>
+<p>The great advantage of the <code>rslurm</code> package is that it can be used with almost no setup on the HPC side at all. Just the <code>rslurm</code> package itself needs to be installed on the HPC. <code>rslurm</code> automatically creates all files, including a shell script that can be passed on to Slurm’s <code>sbatch</code> command directly. In contrast to the <code>clustermq</code> and <code>future</code> packages, <code>rslurm</code> jobs cannot be submitted from a local <code>R</code> session to the HPC, but the shell script has to be run on the HPC’s frontend node directly (connect via ssh).</p>
+<p>The following example is adapted from <a href="https://github.com/SESYNC-ci/rslurm">here</a>.</p>
+<p>First, we need an example function to be run on the HPC:</p>
+<pre class="r"><code>library(rslurm)
+
+fx = function(x, y) x * 2 + y</code></pre>
+<p>You ca either use a data frame or a list to provide the parameter combinations for the function to <code>rslurm</code>. Here we create a data frame with five jobs, each in a row:</p>
+<pre class="r"><code>par_df &lt;- data.frame(x = 1:5)</code></pre>
+<p>The <code>slurm_apply</code> function allows to compute the function for each parameter combination of the created <code>data.frame</code> (use <code>slurm_map</code> for the same just a <code>list</code> as input). It is important that the columns of the <code>data.frame</code> have identical names as the function arguments. Function arguments that should be constant for all jobs can be passed directly after the data frame (<code>y</code> in the example below).</p>
+<p><code>rslurm</code> needs the path of the <code>Rscript</code> command on the HPC during the <code>slurm_apply()</code> function call. To identify the correct path on the HPC, run the following line in a <code>R</code> session <strong>on</strong> the HPC:</p>
+<pre class="r"><code>file.path(R.home(&quot;bin&quot;), &quot;Rscript&quot;)</code></pre>
+<p>Use this path as <code>rscript_path</code> argument for <code>slurm_apply</code> function.</p>
+<p>The <code>slurm_options</code> argument allows to pass on any options (as a list) that will be used as <code>#SBATCH</code> commands in the <code>submit.sh</code> script used to submit the jobs. Make sure to also check out the <code>global_objects</code> and <code>pkgs</code> argument to control which objects and packages will be loaded on each cluster node. In this example, we are going to request one CPU per node, and spread the jobs across a maximum number of nodes equal to the defined parameter combinations (so each parameter combination can run on its own node with one CPU available).</p>
+<p>When running this script on a local machine, it is important to set <code>submit = FALSE</code>. This ensures that the jobs are not submitted, but only all necessary scripts are created for <code>sbatch</code>. Running the function will create a <code>_rslurm_[jobname]</code> folder in the working directory. If the <code>R</code> script is run directly on the HPC, <code>submit = TRUE</code> even submits the jobs directly.</p>
+<pre class="r"><code>sjob &lt;- slurm_apply(f = fx, 
+                    params = par_df, 
+                    y = 10,
+                    jobname = &#39;my_first_test&#39;,
+                    nodes = nrow(par_df), 
+                    cpus_per_node = 1,
+                    rscript_path = &quot;$HOME/.spack/install/haswell/gcc-9.3.0/r-4.0.3-5z5kqf/rlib/R/bin/Rscript&quot;, # adjust to your Rscript path
+                    slurm_options = list(&quot;time&quot; = &quot;00:05:00&quot;, 
+                                         &quot;mem-per-cpu&quot; = &quot;1G&quot;,
+                                         &quot;mail-type&quot; = &quot;ALL&quot;,
+                                         &quot;mail-user&quot; = &quot;your@e-mail.org&quot;),
+                    submit = FALSE)</code></pre>
+<p>The <code>_rslurm_[jobname]</code> folder needs to be uploaded to the HPC. In RStudio, you can just go to the <code>Terminal</code> tab and use <code>scp</code> to upload the <code>_rslurm_[jobname]</code> folder (some HPC frontend nodes do not allow direct uploads, e.g. for the GWDG you’ll need to use <code>transfer.gwdg.de</code> instead):</p>
+<pre><code>scp -r _rslurm_my_first_test *YOUR_USERNAME*@transfer.gwdg.de:~/</code></pre>
+<p>Then you can <code>ssh</code> into the HPC frontend node and navigate to the job folder using <code>cd _rslurm_[jobname]</code>. The jobs can be submitted using</p>
+<pre><code>sbatch submit.sh</code></pre>
+<p>This will submit the jobs and create <code>result_1..i.rds</code> files in the jobs folder, one for each row of the parameter data frame.</p>
+<p>After all jobs are finished, the folder can be downloaded. Again, in RStudio go to the <code>Terminal</code> tab and use <code>scp</code></p>
+<pre><code>scp -r *YOUR_USERNAME*@transfer.gwdg.de:~/_rslurm_my_first_test ./</code></pre>
+<p>As the results are just <code>RDS</code> files, you could just read them into the <code>R</code> using <code>readRDS()</code> but <code>rslurm</code> provides a convenient <code>get_slurm_out</code> function to either row-bind results to a <code>data.frame</code> (<code>outtype = &quot;table&quot;</code>) or as a list (<code>outtype = &quot;raw&quot;</code>, default):</p>
+<pre class="r"><code>results &lt;- get_slurm_out(slr_job =  sjob, outtype = &quot;table&quot;)
+&gt; results
+  V1
+1 12
+2 14
+3 16
+4 18
+5 20</code></pre>
+<p>In case the default <code>submit.sh</code> file is not working on the HPC, you can either modify it by hand or create a custom template that can be provided as <code>sh_template</code> argument to the <code>slurm_apply()</code> function call. One reason could be for example, if modules need to be loaded. Here is an exemplary template that loads two modules (which you can also do in your <code>.bash_modules</code>, see section <code>Create .bash-files</code>):</p>
+<pre class="bash"><code>#!/bin/bash
+
+#SBATCH --job-name={{{jobname}}}
+#SBATCH --array=0-{{{max_node}}}{{{job_array_task_limit}}}
+#SBATCH --cpus-per-task={{{cpus_per_node}}}
+{{#flags}}
+#SBATCH --{{{name}}}
+{{/flags}}
+{{#options}}
+#SBATCH --{{{name}}}={{{value}}}
+{{/options}}
+
+module load gcc/8.2.0
+module load R/4.0.2
+
+{{{rscript}}} --vanilla slurm_run.R</code></pre>
+</div>
+<div id="other-approaches-to-use-r-on-hpc" class="section level2">
+<h2>Other approaches to use R on HPC</h2>
+<div id="using-the-clustermq-package" class="section level3">
+<h3>Using the clustermq package</h3>
 <p><code>clustermq</code> is a package that allows to submit jobs to the HPC via SSH connector. Compared to <code>future</code> (see below), it has the advantage that it submits job arrays. Instead of gradually sending job after job, as done in the examples before, <code>clustermq</code> sends them all at once. This can be a huge time benefit. However, currently <code>clustermq</code> is only working on <em>Linux</em> and <em>macOS</em> (see <a href="https://github.com/mschubert/clustermq/issues/84">#84</a>, <a href="https://github.com/mschubert/clustermq/issues/238">#238</a>).</p>
 <p>First, all necessary dependencies need to be installed on the local system if you use <em>Linux</em>.</p>
 <pre class="bash"><code># You can skip this step on Windows and macOS
@@ -500,8 +564,8 @@ Q_rows(df, fx, job_size = 1)</code></pre>
   template = list(walltime = &quot;00:05:00&quot;, 
                   service = &quot;short&quot;))</code></pre>
 </div>
-<div id="using-r-scripts" class="section level2">
-<h2>Using R-Scripts</h2>
+<div id="using-plain-r-scripts" class="section level3">
+<h3>Using plain R-Scripts</h3>
 <p>You can run R-Scripts with the <code>sbatch</code> command directly from the HPC frontend node. You can add the #SBATCH options to the top of your R script and submit it with sbatch. Slurm will take any script e.g. </p>
 <pre class="r"><code>#!/usr/bin/env Rscript
 #SBATCH -n 4
@@ -512,12 +576,12 @@ test
 system(&quot;hostname&quot;)</code></pre>
 <p>That will work with <code>sbatch &lt;scriptname&gt;</code> as long as you loaded the R module.</p>
 </div>
-<div id="using-the-future-package" class="section level2">
-<h2>Using the future package</h2>
+<div id="using-the-future-package" class="section level3">
+<h3>Using the future package</h3>
 <p>This used to be our preffered way, but <code>clustermq</code> is just more stable to use. This guide might therefore a bit dated.</p>
 <p>One of the ways to use the <em>GWDG</em> HPC is the <code>future</code> package and framework. The advantage of <code>future</code> is that code can be run on the HPC with only minor changes. Furthermore, specifying how to parallelise the <code>R</code> code is straightforward, as to control how to distribute jobs over nodes and cores. A <a href="https://github.com/HenrikBengtsson/future">basic knowledge</a> of <code>future</code> is advised.</p>
-<div id="create-template-to-submit-jobs" class="section level3">
-<h3>1. Create template to submit jobs</h3>
+<div id="create-template-to-submit-jobs" class="section level4">
+<h4>1. Create template to submit jobs</h4>
 <p>A template file is used to control how jobs are submitted to the HPC. This allows to pass arguments as <code>R</code> syntax from the local <code>R</code> session to the <strong>SLURM</strong> system as <code>sbatch</code> commands. The template file, called e.g. <code>future_slurm.tmpl</code>, needs to be created on the HPC (same same <code>nano future_slurm.tmpl</code>). The following is an example for such a template file allowing to specify the most important <code>sbatch</code> options.</p>
 <pre class="bash"><code>## Default resources can be set in your .batchtools.conf.R by defining the variable
 ## &#39;default.resources&#39; as a named list.
@@ -540,8 +604,8 @@ module load R
 
 Rscript -e &#39;batchtools::doJobCollection(&quot;&lt;%= uri %&gt;&quot;)&#39;</code></pre>
 </div>
-<div id="first-login" class="section level3">
-<h3>2. First login</h3>
+<div id="first-login" class="section level4">
+<h4>2. First login</h4>
 <p><strong>Every package from now on needs to be installed on both the local computer and the HPC!</strong></p>
 <p>The following <code>R</code> code sends every <code>future</code> to the HPC, as specified by the <code>future</code> plan.</p>
 <pre class="r"><code># load the packages
@@ -567,8 +631,8 @@ plan(list(
   multisession # how to run on nodes, could also be sequential
 ))</code></pre>
 </div>
-<div id="going-down-the-future-topology" class="section level3">
-<h3>3. Going down the future topology</h3>
+<div id="going-down-the-future-topology" class="section level4">
+<h4>3. Going down the future topology</h4>
 <p>Now it’s possible to reach the <strong>first level</strong> of the HPC (frontend). After logging in to <em>gwdu101.gwdg.de</em>, the function <code>Sys.info()</code> is executed on the frontend of the HPC.</p>
 <pre class="r"><code># Before we start, despite that we have declared our future plan above,
 # we are still working on our local machine if we do not use futures:
@@ -592,8 +656,8 @@ hpc_sysinfo_on_node_cores  %&lt;-%  future_map(seq_len(10), function(x){
   future_map(seq_len(12), ~ Sys.info())
 })</code></pre>
 </div>
-<div id="submitting-jobs-efficiently" class="section level3">
-<h3>4. Submitting jobs efficiently</h3>
+<div id="submitting-jobs-efficiently" class="section level4">
+<h4>4. Submitting jobs efficiently</h4>
 <p>The <code>future</code> plans are crucial, as they specify how to distribute jobs. Therefore, before submitting jobs to the HPC it is important to ensure that the architecture of the plan and how the code is parallelised match. Otherwise, it may be possible to bypass the scheduling system and drain resources from other users.</p>
 <p>The following code snippet explains how to access specific partitions, set the walltime and design a sequential plan. This setup makes sense if the jobs depend of each other, need a specific chip infrastructure or have memory needs that are only satisfied if whole cluster nodes are blocked and jobs are run there exclusively.</p>
 <pre class="r"><code># login node -&gt; cluster nodes -&gt; core/ multiple cores
@@ -636,13 +700,13 @@ plan(list(
   sequential # we need sequential here, so that every job we submit only runs on a single core
 ))</code></pre>
 </div>
-<div id="future-folder" class="section level3">
-<h3>5. .future folder</h3>
+<div id="future-folder" class="section level4">
+<h4>5. .future folder</h4>
 <p><code>future.batchtools</code> creates a folder called <code>.future/</code> on the HPC in the home directory. In this folder all submitted jobs are collected and the folder structure indicates the date and time of submission. If all jobs are collected successfully and retrieved on the local computer, the folder is empty and only contains a <code>.sessioninfo.txt</code>. However, all logs and (partial) results of failed jobs won’t be deleted. This also includes jobs that are killed by the user.</p>
 <p><strong>Note</strong>: It’s advisable to remove failed jobs from time to time in the <code>.future/</code> folder. After a while, this folder can use up a lot of the disk quota on the HPC.</p>
 </div>
-<div id="example" class="section level3">
-<h3>6. Example</h3>
+<div id="example" class="section level4">
+<h4>6. Example</h4>
 <p>Submit jobs to the HPC with the following requirements:</p>
 <ul>
 <li>120 cores to simulate jobs</li>
@@ -690,54 +754,6 @@ fancy_statistical_model &lt;- future_map_dfr(advanced_data, function(x) {
   }, .id = &quot;y&quot;)
 }, .id = &quot;x&quot;)</code></pre>
 </div>
-</div>
-<div id="using-the-rslurm-package" class="section level2">
-<h2>Using the rslurm package</h2>
-<p>The <code>rslurm</code> package allows to submit jobs to a HPC with only very little setup effort. However, this is only possible from systems with direct access to the Slurm workload manager. So contrastingly to the previous discussed <code>clustermq</code> and <code>future</code> package, jobs cannot submitted to the HPC directly from a local <code>R</code> session.</p>
-<p>But <code>rslurm</code> automatically creates all files, including the <code>#SBATCH</code> script, required to submit the jobs as an array.</p>
-<p>The following example is adapted from <a href="https://github.com/SESYNC-ci/rslurm">here</a>.</p>
-<p>First, a function needs to be defined, for example creating a random number with the mean <code>a</code> and a standard deviation of <code>b</code>.</p>
-<pre class="r"><code>foo &lt;- function(a, b, c) {
-  r &lt;- rnorm(n = 1000000, mean = a, sd = b)
-  mean(r) + c
-}</code></pre>
-<p>Next, a <code>data.frame</code> needs to be created with all parameter combinations that will be used for the array jobs.</p>
-<pre class="r"><code>par_df &lt;- data.frame(a = 1:10, b = seq(from = 0.1, to 1, by = 0.1))</code></pre>
-<p>Now, the <code>slurm_apply</code> function allows to compute the function for each parameter combination of the created <code>data.frame</code> (check out <code>slurm_map</code> for the same concepts but using a <code>list</code> as input). It is important that the columns of the <code>data.frame</code> have identical names as the function arguments. Further function arguments that should not vary can be passed on as well (e.g., <code>c</code> argument).</p>
-<p>The <code>slurm_options</code> argument allows to pass on any options (as a list) that will be included in the <code>#SBATCH</code> script used to submit the jobs. Make sure to also check out the <code>global_objects</code> and <code>pkgs</code> argument to control which objects and packages will be loaded on each cluster node. In this example, we are going to request one CPU per node, and spread the jobs across a maximum number of nodes equal to the defined parameter combinations (so theoreticall each parameter combination can run on its own node with one CPU available).</p>
-<p>When running this script on a local machine, it is important to set <code>submit = FALSE</code>. This ensures that the jobs are not submitted, but only all required <code>#SBATCH</code> scripts are created. Running the function will create a <code>_rslurm_[jobname]</code> folder in the working directory. If the <code>R</code> script is run directly on the HPC, <code>submit = TRUE</code> even submits the jobs directly.</p>
-<pre class="r"><code>sjob &lt;- slurm_apply(f = foo, params = par_df, c = 2.5,
-                    jobname = &#39;calc_mean&#39;,
-                    nodes = nrow(par_df), cpus_per_node = 1, submit = FALSE, 
-                    slurm_options = list(&quot;time&quot; = &quot;00:05:00&quot;, 
-                                         &quot;mem-per-cpu&quot; = &quot;1G&quot;))</code></pre>
-<p>The <code>_rslurm_[jobname]</code> folder can be uploaded to the HPC and after navigating to it using <code>cd _rslurm_[jobname]</code>, the jobs can be submitted using <code>sbatch submit.sh</code>. This will submit the jobs and create all <code>result_1..i.rds</code> file in the folder.</p>
-<p>After all jobs are finished, the folder can be downloaded again and all files can be read into the <code>R</code> session using either self-written code or a function provided by <code>rslurm</code>. The <code>rslurm</code> functions allows to either row-bind results to a <code>data.frame</code> (<code>outtype = &quot;table&quot;</code>) or as a list (<code>outtype = &quot;raw&quot;</code>). Lastly, the temporary folder can be removed (again, either “by hand” or using <code>rslurm</code>.)</p>
-<pre class="r"><code>results &lt;- get_slurm_out(sjob)
-
-cleanup_files(sjob)</code></pre>
-<p>In case the default <code>#SBATCH</code> file is not working with the HPC, a template can be created and provided as <code>sh_template</code> argument to the <code>slurm_apply()</code> function call. One reason could be for example, if modules need to be loaded. Here is an exemplary template that loads two modules</p>
-<pre class="bash"><code>#!/bin/bash
-
-#SBATCH --job-name={{{jobname}}}
-#SBATCH --array=0-{{{max_node}}}{{{job_array_task_limit}}}
-#SBATCH --cpus-per-task={{{cpus_per_node}}}
-{{#flags}}
-#SBATCH --{{{name}}}
-{{/flags}}
-{{#options}}
-#SBATCH --{{{name}}}={{{value}}}
-{{/options}}
-
-module load gcc/8.2.0
-module load R/4.0.2
-
-{{{rscript}}} --vanilla slurm_run.R</code></pre>
-<div id="path-to-r-script" class="section level3">
-<h3>Path to R script</h3>
-<p>One issue is that the <code>R</code> script used to run the function on the HPC cannot be found by <code>rslurm</code> when the <code>_rslurm_[jobname]</code> folder is created on a local machine.</p>
-<p>In this case, the <code>rscript_path</code> needs to be specified during the <code>slurm_apply()</code> function call. To identify the correct path on the HPC, run the following line in a <code>R</code> session <strong>on</strong> the HPC and copy the path to set is on your local maching as <code>rscript_path</code>.</p>
-<pre class="r"><code>file.path(R.home(&quot;bin&quot;), &quot;Rscript&quot;)</code></pre>
 </div>
 </div>
 <div id="tips-and-tricks" class="section level2">
