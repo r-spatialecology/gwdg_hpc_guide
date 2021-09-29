@@ -611,7 +611,7 @@ foo <- function(a, b, c) {
 Next, a `data.frame` needs to be created with all parameter combinations that will be used for the array jobs.
 
 ```{r eval = FALSE}
-par_df <- data.frame(a = 1:10, b = seq(from = 0.1, to 1, by = 0.1))
+par_df <- data.frame(a = 1:10, b = seq(from = 0.1, to = 1, by = 0.1))
 ```
 
 Now, the `slurm_apply` function allows to compute the function for each parameter combination of the created `data.frame` (check out `slurm_map` for the same concepts but using a `list` as input). It is important that the columns of the `data.frame` have identical names as the function arguments. Further function arguments that should not vary can be passed on as well (e.g., `c` argument). 
