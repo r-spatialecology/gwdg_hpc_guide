@@ -58,6 +58,12 @@ host hpc-gwdg
   user <*YOUR_USERNAME*>
   IdentityFile ~/.ssh/<yourkey>
   ProxyJump gwdg-login
+  
+Host transfer-scc.gwdg.de
+  User <*YOUR_USERNAME*>
+  Hostname transfer-scc.gwdg.de
+  IdentityFile ~/.ssh/<yourkey>
+  ProxyJump gwdg-login
 ```
 
 In the following we assume that ssh is set up with keys and config file and you are able to connect to the hpc with the following command:
