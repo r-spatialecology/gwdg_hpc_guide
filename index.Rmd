@@ -28,33 +28,31 @@ In general, our setup should also work with any other HPC and the code snippets 
 
 The user account must be activated to use the HPC. Therefore, an e-mail to [hpc@gwdg.de](mailto:hpc@gwdg.de) asking to activate the account must be sent.
 
-### 1. Check Linux shell
+### 1. SSH Key
+You need a SSH key pair to connect to the GWDG HPC (private key on local computer, public key on HPC).
 
-The Linux shell must be set to `/bin/ksh` (and not `/bin/sh`). It's possible to set this in the user settings at [www.gwdg.de](www.gwdg.de).
-
-### 2. SSH Key
-For a convenient login and to use `R` via SSH connector, a SSH key is needed on the HPC (private key on local computer, public key on HPC).
-
-Using *Linux* or *macOS* and *Windows 10*, it is straightforward to generate a SSH key and copy it to the HPC using the shell/terminal.
+Using *Linux* or *macOS* and *Windows 10/11*, it is straightforward to generate a SSH key and copy it to the HPC using the shell/terminal.
 
 ```{bash eval = FALSE}
-ssh-keygen -t rsa -b 2048 -f <yourkey>
+ssh-keygen -t ed25519 -a 200 -f <yourkey>
 ```
 
 For older *Windows* versions, [this guide](https://docs.joyent.com/public-cloud/getting-started/ssh-keys/generating-an-ssh-key-manually/manually-generating-your-ssh-key-in-windows) seems to cover how to connect via SSH.
 
-Once you generated the SSH key, locate the public key (make sure to never share your private key!). The default location of all SSH keys is the .ssh/ folder, which might be hidden. Login to your *GWDG* account, go to "My account" and find "Other Settings". There you can now copy the public key. For more information about connecting via SSH, please see ["CONNECT WITH SSH"](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:connect_with_ssh) by the *GWDG*. 
+Once you generated the SSH key, locate the public key (make sure to never share your private key!). The default location of all SSH keys is the .ssh/ folder, which might be hidden. Login to your *GWDG* account, go to "My account" and find "Other Settings". There you can now copy the public key. 
+
+For more information about connecting via SSH, please see ["CONNECT WITH SSH"](https://docs.hpc.gwdg.de/getting_started/connecting/index.html) by the *GWDG*. 
 
 The HPC's frontend nodes are only accessible from within [GÖNET](https://info.gwdg.de/docs/doku.php?id=en:services:network_services:goenet:start), i.e. either from your office, via VPN or via a proxy: `login.gwdg.de`. To use the proxy, you want to use a [ssh config file](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:connect_with_ssh#saving_the_ssh_configuration) like this:
 
 ```{bash eval = FALSE}
-host gwdg-login #can be any name you want
+host gwdg-login # can be any name you want
   hostname login.gwdg.de
   user <*YOUR_USERNAME*>
   IdentityFile ~/.ssh/<yourkey>
  
 host hpc-gwdg 
-  hostname gwdu102 # or gwdu101 or gwdu103
+  hostname login-mdc.hpc.gwdg.de
   user <*YOUR_USERNAME*>
   IdentityFile ~/.ssh/<yourkey>
   ProxyJump gwdg-login
@@ -72,9 +70,9 @@ In the following we assume that ssh is set up with keys and config file and you 
 ssh hpc-gwdg
 ```
 
-### 3. Create .profile
+### 2. Create .profile
 
-Because `.bashrc` is not sourced by Scientific Linux by default ([source](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:bashrc)), firstly a `.profile` file is created. The following code enables that `.bashrc` is sourced every time the HPC is accessed.
+Because `.bashrc` is not sourced by Scientific Linux (the HPC operating system) by default ([source](https://info.gwdg.de/docs/doku.php?id=en:services:application_services:high_performance_computing:bashrc)), firstly a `.profile` file is created. The following code enables that `.bashrc` is sourced every time the HPC is accessed.
 
 ```{bash eval = FALSE}
 nano .profile
@@ -98,7 +96,7 @@ case "$SHELL" in
 esac
 ```
 
-### 4. Create .bash-files
+### 3. Create .bash-files
 
 Now, the `.bashrc` file is sourced every time the HPC is accessed. This is convenient because it allows to set default settings, load aliases or modules. To keep everything organized, within `.bashrc` again different files are sourced (if they are present). This includes `.bash_aliases` and `.bash_modules`.
 
@@ -160,7 +158,9 @@ source $SPACK_USER_ROOT/share/spack/setup-env.sh
 spack load libzmq
 ```
 
-### 5. Try to run `R` on the HPC
+An alternative is to run containers on the HPC with a software called [Apptainer](https://docs.hpc.gwdg.de/software/apptainer/index.html).
+
+### 4. Try to run `R` on the HPC
 
 If the previous steps all worked out, it should be possible to login to HPC without typing a password. If so, using `R` should be no problem now. The following command logs in to the HPC frontend and starts a `R` terminal.
 
@@ -353,7 +353,76 @@ module load R/4.0.2
 {{{rscript}}} --vanilla slurm_run.R
 ```
 
-## Other approaches to use R on HPC
+## Tips and Tricks
+
+### 1. Kill jobs/R sessions
+
+There is an alias to kill already submitted jobs. In case something goes wrong while submitting jobs, there will be most likely several `R` sessions that do not close by themselves or are open and keep submitting jobs. A convenient way to kill these processes is to login to the HPC frontend and use the defined alias `monitor` to enter the process manger `htop`. With `F9` it's possible to select the `R` processes and kill them. `F10` closes the process manager afterwards.
+
+```{bash eval = FALSE}
+jobs_kill
+monitor
+```
+
+### 2. Better connection to the HPC
+
+One inconvenience is that the connection to HPC from a local `R` session can not be interrupted. If that happens, jobs are lost (using `future` there might be chance to collect every result in the `.future` folder). This also means that running code from a local computer means that it has to be running until everything is finished. When code take several days, this can easily become a problem.
+
+A way we explored for such cases is to use the [GWDG Cloud Server](https://www.gwdg.de/de/server-services/gwdg-cloud-server). If you install there an instance of RStudio Server (a tutorial with docker is [here](https://github.com/bitbacchus/rstudio-docker)), you have a cloud based IDE that you can run from everywhere with access to the internet. By default, the RStudio Server unfortunately breaks the connection every now and then, so you have to tweak it a bit to be permanently accessible. To turn off the suspended session feature, must be specified in a `ression.conf` file. After the line `session-timeout-minutes=0` is added to the file, the server must be restarted (TODO: include this into the docker image).
+
+```{bash eval = FALSE}
+cd /etc/rstudio
+nano rsession.conf # add line session-timeout-minutes=0
+```
+
+```{bash eval = FALSE}
+session-timeout-minutes=0
+```
+
+```{bash eval = FALSE}
+sudo rstudio-server restart
+```
+
+The you'll have to setup ssh as described above.
+
+Now you should be able to login from the RStudio Cloud Server Terminal to the HPC directly as usual without any password identification. If so, you should be able to submit jobs to the cluster from the Cloud Server just as from your local machine. If you use `clustermq`, it's not possible to logout and login again to the Cloud Server as long as jobs are running on the HPC. So either, you need to keep the browser window open as long as jobs are running on the HPC, or better run your R-script with "Source as local job":  ![Source as local job](images/source_local_job.png)
+
+### 3. Use VS Code instead of RStudio
+
+The GWDG has a nice [HowTo](https://docs.hpc.gwdg.de/software/hlrn_tmod/devtools_compiler_debugger/vs_code/index.html)
+
+## Troubleshooting
+
+Here, we are going to collect some issue we had during the setup and using the cluster at one point or the other. This issues might be rather specific, but maybe you run into the same problems.
+
+### 3.1 Problems with the .Rprofile
+There was the problem that `clustermq` kept telling to specify the scheduler, even though the `.Rprofile` was set up correctly. In this case the problem was that there was no empty, new line at the end of the `.Rprofile` file.
+
+### 3.2 Byte character sets
+If you use a text editor to create all the template files, it might be possible that hidden characters (e.g. line break commands) are automatically added to the template files. This can also be a problem if you switch between different byte character sets. In case your jobs return errors and you see a lot of e.g. "\r\n" in your template files (or any other files), one possible solution is to run the following command in order to convert the file to a unix character set.
+
+```{bash eval = FALSE}
+dos2unix myBatchFile
+```
+
+### 3.3 Kill old processes
+We advise to make sure all processes are killed from time to time. This includes all submitted and not finished jobs using `jobs_kill` as well as all others processes. Therefore, you can use `monitor` to enter the `htop` and simply kill all processes you see that are somehow related to `R`. This is especially important if you had jobs that didn't finish successfully before.
+
+## Links
+
+* [https://github.com/HenrikBengtsson/future](https://github.com/HenrikBengtsson/future)
+* [https://github.com/HenrikBengtsson/future.batchtools](https://github.com/HenrikBengtsson/future.batchtools)
+* [https://github.com/mllg/batchtools](https://github.com/mllg/batchtools)
+* [https://github.com/DavisVaughan/furrr](https://github.com/DavisVaughan/furrr)
+* [https://github.com/mschubert/clustermq](https://github.com/mschubert/clustermq)
+* [http://cyberhelp.sesync.org/rslurm/articles/rslurm.html](http://cyberhelp.sesync.org/rslurm/articles/rslurm.html)
+
+## Acknowledgments
+Huge thanks to the GWDG HPC team that put quite some effort into installing `R` packages and explaining some HPC basics to us.
+Another big thanks to all authors developing nice tools (future, clustermq, batchtools, rslurm) to enable even ecologists to use cluster interfaces `remo::ji("smile")`.
+
+
+## Archived (i.e. outdated) howto on other approaches to use R on HPC
 ### Using the clustermq package
 
 `clustermq` is a package that allows to submit jobs to the HPC via SSH connector. Compared to `future` (see below), it has the advantage that it submits job arrays. Instead of gradually sending job after job, as done in the examples before, `clustermq` sends them all at once. This can be a huge time benefit. However, currently `clustermq` is only working on *Linux* and *macOS* (see [#84](https://github.com/mschubert/clustermq/issues/84), [#238](https://github.com/mschubert/clustermq/issues/238)).
@@ -696,66 +765,3 @@ fancy_statistical_model <- future_map_dfr(advanced_data, function(x) {
 }, .id = "x")
 ```
 
-## Tips and Tricks
-
-### 1. Kill jobs/R sessions
-
-There is an alias to kill already submitted jobs. In case something goes wrong while submitting jobs, there will be most likely several `R` sessions that do not close by themselves or are open and keep submitting jobs. A convenient way to kill these processes is to login to the HPC frontend and use the defined alias `monitor` to enter the process manger `htop`. With `F9` it's possible to select the `R` processes and kill them. `F10` closes the process manager afterwards.
-
-```{bash eval = FALSE}
-jobs_kill
-monitor
-```
-
-### 2. Better connection to the HPC
-
-One inconvenience is that the connection to HPC from a local `R` session can not be interrupted. If that happens, jobs are lost (using `future` there might be chance to collect every result in the `.future` folder). This also means that running code from a local computer means that it has to be running until everything is finished. When code take several days, this can easily become a problem.
-
-A way we explored for such cases is to use the [GWDG Cloud Server](https://www.gwdg.de/de/server-services/gwdg-cloud-server). If you install there an instance of RStudio Server (a tutorial with docker is [here](https://github.com/bitbacchus/rstudio-docker)), you have a cloud based IDE that you can run from everywhere with access to the internet. By default, the RStudio Server unfortunately breaks the connection every now and then, so you have to tweak it a bit to be permanently accessible. To turn off the suspended session feature, must be specified in a `ression.conf` file. After the line `session-timeout-minutes=0` is added to the file, the server must be restarted (TODO: include this into the docker image).
-
-```{bash eval = FALSE}
-cd /etc/rstudio
-nano rsession.conf # add line session-timeout-minutes=0
-```
-
-```{bash eval = FALSE}
-session-timeout-minutes=0
-```
-
-```{bash eval = FALSE}
-sudo rstudio-server restart
-```
-
-The you'll have to setup ssh as described above.
-
-Now you should be able to login from the RStudio Cloud Server Terminal to the HPC directly as usual without any password identification. If so, you should be able to submit jobs to the cluster from the Cloud Server just as from your local machine. If you use `clustermq`, it's not possible to logout and login again to the Cloud Server as long as jobs are running on the HPC. So either, you need to keep the browser window open as long as jobs are running on the HPC, or better run your R-script with "Source as local job":  ![Source as local job](images/source_local_job.png)
-
-## Troubleshooting
-
-Here, we are going to collect some issue we had during the setup and using the cluster at one point or the other. This issues might be rather specific, but maybe you run into the same problems.
-
-### 3.1 Problems with the .Rprofile
-There was the problem that `clustermq` kept telling to specify the scheduler, even though the `.Rprofile` was set up correctly. In this case the problem was that there was no empty, new line at the end of the `.Rprofile` file.
-
-### 3.2 Byte character sets
-If you use a text editor to create all the template files, it might be possible that hidden characters (e.g. line break commands) are automatically added to the template files. This can also be a problem if you switch between different byte character sets. In case your jobs return errors and you see a lot of e.g. "\r\n" in your template files (or any other files), one possible solution is to run the following command in order to convert the file to a unix character set.
-
-```{bash eval = FALSE}
-dos2unix myBatchFile
-```
-
-### 3.3 Kill old processes
-We advise to make sure all processes are killed from time to time. This includes all submitted and not finished jobs using `jobs_kill` as well as all others processes. Therefore, you can use `monitor` to enter the `htop` and simply kill all processes you see that are somehow related to `R`. This is especially important if you had jobs that didn't finish successfully before.
-
-## Links
-
-* [https://github.com/HenrikBengtsson/future](https://github.com/HenrikBengtsson/future)
-* [https://github.com/HenrikBengtsson/future.batchtools](https://github.com/HenrikBengtsson/future.batchtools)
-* [https://github.com/mllg/batchtools](https://github.com/mllg/batchtools)
-* [https://github.com/DavisVaughan/furrr](https://github.com/DavisVaughan/furrr)
-* [https://github.com/mschubert/clustermq](https://github.com/mschubert/clustermq)
-* [http://cyberhelp.sesync.org/rslurm/articles/rslurm.html](http://cyberhelp.sesync.org/rslurm/articles/rslurm.html)
-
-## Acknowledgments
-Huge thanks to the GWDG HPC team that put quite some effort into installing `R` packages and explaining some HPC basics to us.
-Another big thanks to all authors developing nice tools (future, clustermq, batchtools, rslurm) to enable even ecologists to use cluster interfaces `remo::ji("smile")`.
