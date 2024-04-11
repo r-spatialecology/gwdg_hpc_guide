@@ -1513,8 +1513,8 @@ repo</a>.</p>
 <div id="general-setup" class="section level2">
 <h2>General setup</h2>
 <p>The user account must be activated to use the HPC. Therefore, an
-e-mail to <a href="mailto:hpc@gwdg.de">hpc@gwdg.de</a> asking to
-activate the account must be sent.</p>
+e-mail to <a href="mailto:hpc-support@gwdg.de">hpc-support@gwdg.de</a>
+asking to activate the account must be sent.</p>
 <div id="ssh-key" class="section level3">
 <h3>1. SSH Key</h3>
 <p>You need a SSH key pair to connect to the GWDG HPC (private key on
@@ -1565,21 +1565,12 @@ firstly a <code>.profile</code> file is created. The following code
 enables that <code>.bashrc</code> is sourced every time the HPC is
 accessed.</p>
 <pre class="bash"><code>nano .profile</code></pre>
-<pre class="bash"><code>case &quot;$SHELL&quot; in
-/bin/bash)
-    . /etc/bashrc
-    . .bashrc
-    ;;
-/usr/bin/bash)
-    . /etc/bashrc
-    . .bashrc
-    ;;
-/usr/local/bin/bash)
-    . /etc/bashrc
-    . .bashrc
-    ;;
-*)  ;;
-esac</code></pre>
+<pre class="bash"><code>if [ -n &quot;$BASH_VERSION&quot; ]; then
+    # include .bashrc if it exists
+    if [ -f &quot;$HOME/.bashrc&quot; ]; then
+        . &quot;$HOME/.bashrc&quot;
+    fi
+fi</code></pre>
 </div>
 <div id="create-.bash-files" class="section level3">
 <h3>3. Create .bash-files</h3>
@@ -1734,8 +1725,8 @@ plus all later additionally loaded modules.</p>
 exception of those specified in the <code>.bash_modules</code> file). To
 detach selected modules or all modules at once without logging out, the
 <code>purge</code> command can be used.</p>
-<pre class="bash"><code>module purge R
-module purge</code></pre>
+<pre class="bash"><code>module unload R # Unload R
+module purge # Unload all modules</code></pre>
 </div>
 </div>
 <div id="installing-packages" class="section level2">
@@ -1836,7 +1827,7 @@ HPC. In RStudio, you can just go to the <code>Terminal</code> tab and
 use <code>scp</code> to upload the <code>_rslurm_[jobname]</code> folder
 (some HPC frontend nodes do not allow direct uploads, e.g. for the GWDG
 you’ll need to use <code>transfer.gwdg.de</code> instead):</p>
-<pre><code>scp -r _rslurm_my_first_test *YOUR_USERNAME*@transfer.gwdg.de:~/</code></pre>
+<pre><code>scp -r _rslurm_my_first_test *YOUR_USERNAME*@transfer-scc.gwdg.de:~/</code></pre>
 <p>Then you can <code>ssh</code> into the HPC frontend node and navigate
 to the job folder using <code>cd _rslurm_[jobname]</code>. The jobs can
 be submitted using</p>
@@ -1846,7 +1837,7 @@ files in the jobs folder, one for each row of the parameter data
 frame.</p>
 <p>After all jobs are finished, the folder can be downloaded. Again, in
 RStudio go to the <code>Terminal</code> tab and use <code>scp</code></p>
-<pre><code>scp -r *YOUR_USERNAME*@transfer.gwdg.de:~/_rslurm_my_first_test ./</code></pre>
+<pre><code>scp -r *YOUR_USERNAME*@transfer-scc.gwdg.de:~/_rslurm_my_first_test ./</code></pre>
 <p>As the results are just <code>RDS</code> files, you could just read
 them into the <code>R</code> using <code>readRDS()</code> but
 <code>rslurm</code> provides a convenient <code>get_slurm_out</code>

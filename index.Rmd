@@ -26,7 +26,7 @@ In general, our setup should also work with any other HPC and the code snippets 
 
 ## General setup
 
-The user account must be activated to use the HPC. Therefore, an e-mail to [hpc@gwdg.de](mailto:hpc@gwdg.de) asking to activate the account must be sent.
+The user account must be activated to use the HPC. Therefore, an e-mail to [hpc-support@gwdg.de](mailto:hpc-support@gwdg.de) asking to activate the account must be sent.
 
 ### 1. SSH Key
 You need a SSH key pair to connect to the GWDG HPC (private key on local computer, public key on HPC).
@@ -79,21 +79,12 @@ nano .profile
 ```
 
 ```{bash eval = FALSE}
-case "$SHELL" in
-/bin/bash)
-    . /etc/bashrc
-    . .bashrc
-    ;;
-/usr/bin/bash)
-    . /etc/bashrc
-    . .bashrc
-    ;;
-/usr/local/bin/bash)
-    . /etc/bashrc
-    . .bashrc
-    ;;
-*)  ;;
-esac
+if [ -n "$BASH_VERSION" ]; then
+    # include .bashrc if it exists
+    if [ -f "$HOME/.bashrc" ]; then
+        . "$HOME/.bashrc"
+    fi
+fi
 ```
 
 ### 3. Create .bash-files
@@ -227,8 +218,8 @@ module list
 Disconnecting and reconnecting via ssh also removes all modules (with exception of those specified in the `.bash_modules` file). To detach selected modules or all modules at once without logging out, the `purge` command can be used.
 
 ```{bash eval = FALSE}
-module purge R
-module purge
+module unload R # Unload R
+module purge # Unload all modules
 ```
 
 ## Installing packages
@@ -305,7 +296,7 @@ sjob <- slurm_apply(f = fx,
 The `_rslurm_[jobname]` folder needs to be uploaded to the HPC. In RStudio, you can just go to the `Terminal` tab and use `scp` to upload the `_rslurm_[jobname]` folder (some HPC frontend nodes do not allow direct uploads, e.g. for the GWDG you'll need to use `transfer.gwdg.de` instead):
 
 ```
-scp -r _rslurm_my_first_test *YOUR_USERNAME*@transfer.gwdg.de:~/
+scp -r _rslurm_my_first_test *YOUR_USERNAME*@transfer-scc.gwdg.de:~/
 ```
 
 Then you can `ssh` into the HPC frontend node and navigate to the job folder using `cd _rslurm_[jobname]`. The jobs can be submitted using 
@@ -316,7 +307,7 @@ This will submit the jobs and create `result_1..i.rds` files in the jobs folder,
 
 After all jobs are finished, the folder can be downloaded. Again, in RStudio go to the `Terminal` tab and use `scp`
 ```
-scp -r *YOUR_USERNAME*@transfer.gwdg.de:~/_rslurm_my_first_test ./
+scp -r *YOUR_USERNAME*@transfer-scc.gwdg.de:~/_rslurm_my_first_test ./
 ```
 
 As the results are just `RDS` files, you could just read them into the `R` using `readRDS()` but `rslurm` provides a convenient `get_slurm_out` function to either row-bind results to a `data.frame` (`outtype = "table"`) or as a list (`outtype = "raw"`, default):
